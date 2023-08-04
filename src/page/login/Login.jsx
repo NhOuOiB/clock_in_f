@@ -21,6 +21,18 @@ const Login = () => {
             });
             localStorage.setItem('permission', res.data.permission);
             localStorage.setItem('userId', res.data.id);
+            console.log(res);
+            if (res.status == 200) {
+                toast.success(res.data.message, {
+                    position: 'top-center',
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    theme: 'dark',
+                });
+            }
             if (res.data.permission == 1) {
                 navigate('/checkRecord');
             } else {

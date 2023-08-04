@@ -51,7 +51,7 @@ const CheckRecord = () => {
                 <tbody>
                     {record.map((v, i) => {
                         return (
-                            <tr key={i} className="h-10">
+                            <tr key={i} className="h-10 hover:bg-emerald-50">
                                 <td>{v.name}</td>
                                 <td>{v.type}</td>
                                 <td>

@@ -52,7 +52,7 @@ const AddEmployee = () => {
     console.log(input);
     return (
         <div className="w-full h-[calc(100vh-48px)] flex justify-center items-center">
-            <div className="w-full mx-2 sm:w-2/3 h-2/3 rounded-3xl border px-5 py-14 grid">
+            <div className="w-full mx-2 xl:w-1/3 sm:w-2/3 h-2/3 rounded-3xl border px-5 py-14 grid">
                 <div>
                     <label htmlFor="">帳號 : </label>
                     <input
@@ -75,7 +75,13 @@ const AddEmployee = () => {
                 </div>
                 <div>
                     <label htmlFor="">權限 : </label>
-                    <select name="" id="permission" className="w-44 border" value={input.permission} onChange={(e) => handleChange(e)}>
+                    <select
+                        name=""
+                        id="permission"
+                        className="w-44 border"
+                        value={input.permission}
+                        onChange={(e) => handleChange(e)}
+                    >
                         <option value="">請選擇</option>
                         <option value="1">會計</option>
                         <option value="2">長照</option>
@@ -102,10 +108,10 @@ const AddEmployee = () => {
                     />
                 </div>
                 <div className="flex justify-center items-center gap-10">
-                    <div className="bg-green-400 py-2 px-4 rounded" onClick={handleSubmit}>
+                    <div className="bg-green-400 py-2 px-4 rounded cursor-pointer" onClick={handleSubmit}>
                         儲存
                     </div>
-                    <div className="bg-red-500 py-2 px-4 rounded" onClick={handleClear}>
+                    <div className="bg-red-500 py-2 px-4 rounded cursor-pointer" onClick={handleClear}>
                         清除
                     </div>
                 </div>

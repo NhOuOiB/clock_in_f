@@ -2,12 +2,13 @@ import React from 'react';
 import axios from 'axios';
 import { API_URL } from '../../utils/config';
 import auth from '../../auth/auth';
+import { toast } from 'react-toastify';
 
 const Check = () => {
     auth();
     async function getCurrentPosition() {
         return new Promise((resolve, reject) => {
-            if (navigator.geolocation)
+            if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         let lat = position.coords.latitude;
@@ -18,17 +19,50 @@ const Check = () => {
                         reject(error);
                     }
                 );
+            } else {
+                toast.error('Geolocation is not supported by your browser', {
+                    position: 'top-center',
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    theme: 'dark',
+                });
+            }
         });
     }
     async function handleClick(type) {
         const position = await getCurrentPosition();
         console.log(position);
-        await axios.post(`${API_URL}/addCheckRecord`, {
+        let res = await axios.post(`${API_URL}/addCheckRecord`, {
             id: localStorage.getItem('userId'),
             type: type,
             lat: position.lat,
             lng: position.lng,
         });
+        console.log(res);
+        if (res.status == 200) {
+            toast.success(res.data, {
+                position: 'top-center',
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: 'dark',
+            });
+        } else if (res.status == 401) {
+            toast.error(res.data, {
+                position: 'top-center',
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                theme: 'dark',
+            });
+        }
     }
     return (
         <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center">
