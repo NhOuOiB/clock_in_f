@@ -4,18 +4,33 @@ import { Link } from 'react-router-dom';
 const Header = () => {
     const [link] = useState([
         {
-            link: '/check',
+            link: '/clock',
             name: '打卡',
             permission: 2,
         },
         {
-            link: '/checkRecord',
+            link: '/clockRecord',
+            name: '打卡紀錄',
+            permission: 2,
+        },
+        {
+            link: '/clockRecord',
             name: '打卡紀錄',
             permission: 1,
         },
         {
-            link: '/addEmployee',
-            name: '新增員工',
+            link: '/employee',
+            name: '特護',
+            permission: 1,
+        },
+        {
+            link: '/individual',
+            name: '個案',
+            permission: 1,
+        },
+        {
+            link: '/specialCaseRecord',
+            name: '特殊狀況',
             permission: 1,
         },
     ]);
@@ -38,6 +53,7 @@ const Header = () => {
                     )
                 );
             })}
+            <div></div>
         </div>
     );
 };
