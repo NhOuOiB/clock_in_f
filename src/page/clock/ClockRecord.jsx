@@ -8,6 +8,7 @@ const ClockRecord = () => {
   auth();
   const [record, setRecord] = useState([]);
   const [settlement, setSettlement] = useState([]);
+  const [specialCaseRecord, setSpecialCaseRecord] = useState([]);
   const [searchCondition, setSearchCondition] = useState({
     begin: '',
     end: '',
@@ -15,7 +16,6 @@ const ClockRecord = () => {
   });
   console.log(searchCondition);
   function handleChange(e) {
-    console.log(e.target.tagName);
     if (e.target.tagName.toLowerCase() == 'div') {
       setSearchCondition((prev) => ({ ...prev, [e.target.dataset.name]: e.target.dataset.value }));
     } else {
@@ -23,9 +23,16 @@ const ClockRecord = () => {
     }
   }
 
-  async function fetchRecordData() {
+  async function fetchRecordData(searchCondition) {
+    let data;
     try {
-      let data = await axios.get(`${API_URL}/getClockRecord`);
+      if (searchCondition != undefined) {
+        data = await axios.get(`${API_URL}/getClockRecord`, { params: searchCondition });
+        console.log(1);
+      } else {
+        data = await axios.get(`${API_URL}/getClockRecord`);
+        console.log(2);
+      }
       setRecord(data.data);
     } catch (error) {
       console.error('資料庫錯誤', error);
@@ -41,15 +48,28 @@ const ClockRecord = () => {
     }
   }
 
+  async function fetchSpecialCaseRecordData() {
+    try {
+      let data = await axios.get(`${API_URL}/getSpecialCaseRecord`);
+      setSpecialCaseRecord(data.data);
+    } catch (error) {
+      console.error('資料庫錯誤', error);
+    }
+  }
+
   useEffect(() => {
     fetchRecordData();
     fetchSettlementData();
   }, []);
+
+  useEffect(() => {
+    fetchRecordData(searchCondition);
+  }, [searchCondition]);
   return (
     <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center">
-      <div className="w-full 2xl:w-3/4 flex flex-col gap-16">
-        <div className="flex flex-col justify-center items-start gap-6">
-          <div className="flex flex-col justify-center items-start gap-2">
+      <div className="w-full 2xl:w-3/4 flex flex-col md:gap-16">
+        <div className="flex flex-col justify-center items-start md:gap-6">
+          <div className="flex flex-col justify-center items-start md:gap-2">
             <div>篩選時間</div>
             <div>
               <input
@@ -69,7 +89,7 @@ const ClockRecord = () => {
               />
             </div>
           </div>
-          <div className="flex flex-col justify-center items-start gap-2">
+          <div className="flex flex-col justify-center items-start md:gap-2">
             <div>篩選結算型態</div>
             <div className="flex gap-3">
               {settlement.map((v, i) => {
