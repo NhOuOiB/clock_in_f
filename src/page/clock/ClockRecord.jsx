@@ -26,13 +26,7 @@ const ClockRecord = () => {
   async function fetchRecordData(searchCondition) {
     let data;
     try {
-      if (searchCondition != undefined) {
-        data = await axios.get(`${API_URL}/getClockRecord`, { params: searchCondition });
-        console.log(1);
-      } else {
-        data = await axios.get(`${API_URL}/getClockRecord`);
-        console.log(2);
-      }
+      data = await axios.get(`${API_URL}/getClockRecord`, { params: searchCondition });
       setRecord(data.data);
     } catch (error) {
       console.error('資料庫錯誤', error);
@@ -48,12 +42,24 @@ const ClockRecord = () => {
     }
   }
 
-  async function fetchSpecialCaseRecordData() {
+  async function fetchSpecialCaseRecordData(searchCondition) {
     try {
-      let data = await axios.get(`${API_URL}/getSpecialCaseRecord`);
+      let data = await axios.get(`${API_URL}/getSpecialCaseRecord`, { params: searchCondition });
       setSpecialCaseRecord(data.data);
     } catch (error) {
       console.error('資料庫錯誤', error);
+    }
+  }
+
+  async function handleDelete(id) {
+    try {
+      // 發送刪除請求
+      await axios.put(`${API_URL}/deleteClockRecord?id=${id}`);
+
+      // 刪除成功後重新獲取最新的打卡紀錄
+      fetchRecordData(searchCondition);
+    } catch (error) {
+      console.error('刪除員工發生錯誤:', error);
     }
   }
 
@@ -64,7 +70,9 @@ const ClockRecord = () => {
 
   useEffect(() => {
     fetchRecordData(searchCondition);
+    fetchSpecialCaseRecordData(searchCondition);
   }, [searchCondition]);
+  console.log(specialCaseRecord);
   return (
     <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center">
       <div className="w-full 2xl:w-3/4 flex flex-col md:gap-16">
@@ -128,73 +136,137 @@ const ClockRecord = () => {
             {record.map((v, i) => {
               const workStart = moment(v.in_time).hour();
               const workEnd = moment(v.out_time).hour();
+
+              class ShiftHourCalculator {
+                constructor(workStart, workEnd) {
+                  this.workStart = workStart;
+                  this.workEnd = workEnd;
+                  this.morningShiftHours = 0;
+                  this.afternoonShiftHours = 0;
+                  this.nightShiftHours = 0;
+                }
+
+                calculate() {
+                  // 08:00~16:00 的情况
+                  if (this.workStart < this.workEnd) {
+                    if ((this.workStart < 8 && this.workEnd < 8) || (this.workStart > 16 && this.workEnd > 16)) {
+                      this.morningShiftHours = 0;
+                    } else {
+                      this.morningShiftHours = Math.min(this.workEnd, 16) - Math.max(this.workStart, 8);
+                    }
+                  } else if (this.workStart > this.workEnd) {
+                    if (this.workStart >= 16 && this.workEnd <= 8) {
+                      this.morningShiftHours = 0;
+                    } else if (this.workEnd > 8) {
+                      this.morningShiftHours = Math.min(this.workEnd, 16) - Math.min(this.workStart, 8);
+                    } else {
+                      this.morningShiftHours = Math.max(this.workEnd, 16) - Math.max(this.workStart, 8);
+                    }
+                  }
+
+                  // 16:00~24:00 的情况
+                  if (this.workStart < this.workEnd) {
+                    if (this.workStart < 16 && this.workEnd < 16) {
+                      this.afternoonShiftHours = 0;
+                    } else {
+                      this.afternoonShiftHours = Math.min(this.workEnd, 24) - Math.max(this.workStart, 16);
+                    }
+                  } else if (this.workStart > this.workEnd) {
+                    if (this.workEnd >= 16) {
+                      this.afternoonShiftHours = Math.min(this.workEnd, 24) - Math.min(this.workStart, 16);
+                    } else {
+                      this.afternoonShiftHours = Math.max(this.workEnd, 24) - Math.max(this.workStart, 16);
+                    }
+                  }
+
+                  // 24:00~08:00 的情况
+                  if (this.workStart < this.workEnd) {
+                    if (this.workStart > 8 && this.workEnd > 8) {
+                      this.nightShiftHours = 0;
+                    } else if (this.workStart > 8) {
+                      this.nightShiftHours = Math.min(this.workEnd, 8) - Math.min(this.workStart, 0);
+                    } else {
+                      this.nightShiftHours = Math.min(this.workEnd, 8) - Math.max(this.workStart, 0);
+                    }
+                  } else if (this.workStart > this.workEnd) {
+                    if (this.workStart > 8) {
+                      this.nightShiftHours = Math.min(this.workEnd, 8) - Math.min(this.workStart, 0);
+                    } else {
+                      this.nightShiftHours = Math.min(this.workEnd, 8) - Math.max(this.workStart, 0);
+                    }
+                  }
+                }
+              }
+
+              const basicWage = new ShiftHourCalculator(workStart, workEnd);
               {
-                /* console.log(workStart);
-              console.log(workEnd); */
-              }
-
-              let morningShiftHours = 0;
-              let afternoonShiftHours = 0;
-              let nightShiftHours = 0;
-
-              // 08:00~16:00 的情况
-              if (workStart < workEnd) {
-                if ((workStart < 8 && workEnd < 8) || (workStart > 16 && workEnd > 16)) {
-                  morningShiftHours = 0;
-                } else {
-                  morningShiftHours = Math.min(workEnd, 16) - Math.max(workStart, 8);
-                }
-              } else if (workStart > workEnd) {
-                if (workStart >= 16 && workEnd <= 8) {
-                  morningShiftHours = 0;
-                } else if (workEnd > 8) {
-                  morningShiftHours = Math.min(workEnd, 16) - Math.min(workStart, 8);
-                } else {
-                  morningShiftHours = Math.max(workEnd, 16) - Math.max(workStart, 8);
-                }
-              }
-
-              // 16:00~24:00 的情况
-              if (workStart < workEnd) {
-                if (workStart < 16 && workEnd < 16) {
-                  afternoonShiftHours = 0;
-                } else {
-                  afternoonShiftHours = Math.min(workEnd, 24) - Math.max(workStart, 16);
-                }
-              } else if (workStart > workEnd) {
-                if (workEnd >= 16) {
-                  afternoonShiftHours = Math.min(workEnd, 24) - Math.min(workStart, 16);
-                } else {
-                  afternoonShiftHours = Math.max(workEnd, 24) - Math.max(workStart, 16);
-                }
-              }
-
-              // 24:00~08:00 的情况
-              if (workStart < workEnd) {
-                if (workStart > 8 && workEnd > 8) {
-                  nightShiftHours = 0;
-                } else if (workStart > 8) {
-                  nightShiftHours = Math.min(workEnd, 8) - Math.min(workStart, 0);
-                } else {
-                  nightShiftHours = Math.min(workEnd, 8) - Math.max(workStart, 0);
-                }
-              } else if (workStart > workEnd) {
-                if (workStart > 8) {
-                  nightShiftHours = Math.min(workEnd, 8) - Math.min(workStart, 0);
-                } else {
-                  nightShiftHours = Math.min(workEnd, 8) - Math.max(workStart, 0);
-                }
-              }
-
-              {
-                /* console.log(morningShiftHours);
-              console.log(afternoonShiftHours);
-              console.log(nightShiftHours); */
-              }
-              const total_wage =
+                /* const totalWage =
                 morningShiftHours * v.morning_wage +
                 afternoonShiftHours * v.afternoon_wage +
-                nightShiftHours * v.night_wage;
+                nightShiftHours * v.night_wage; */
+              }
+
+              let specialBonus = 0;
+              let basicMorningWage = basicWage.morningShiftHours * v.morning_wage;
+              let basicAfternoonWage = basicWage.afternoonShiftHours * v.afternoon_wage;
+              let basicNightWage = basicWage.nightShiftHours * v.night_wage;
+              let repetitionOfSpecialRecord = [];
+
+              for (const scr of specialCaseRecord) {
+                if (
+                  (scr.begin < v.in_time && scr.end > v.in_time) ||
+                  (scr.begin < v.out_time && scr.end > v.out_time) ||
+                  (scr.begin < v.in_time && scr.end > v.out_time)
+                ) {
+                  {
+                    /* console.log(scr.begin < v.in_time && scr.end < v.out_time);
+                  console.log(scr.begin > v.in_time && scr.end > v.out_time);
+                  console.log(scr.begin < v.in_time && scr.end > v.out_time); */
+                  }
+                  console.log(moment.max(moment(scr.begin), moment(v.in_time)).format('YYYY年MM月DD日 HH點mm分'));
+                  console.log(moment.min(moment(scr.end), moment(v.out_time)).format('YYYY年MM月DD日 HH點mm分'));
+                  let OverlapOfWorkHoursWithSpecialCase = new ShiftHourCalculator(
+                    moment.max(moment(scr.begin), moment(v.in_time)).hour(),
+                    moment.min(moment(scr.end), moment(v.out_time)).hour()
+                  );
+                  OverlapOfWorkHoursWithSpecialCase.calculate();
+                  repetitionOfSpecialRecord.push({
+                    id: repetitionOfSpecialRecord.length + 1,
+                    begin: moment.max(moment(scr.begin), moment(v.in_time)),
+                    end: moment.min(moment(scr.end), moment(v.out_time)),
+                    morningShiftHours: OverlapOfWorkHoursWithSpecialCase.morningShiftHours,
+                    afternoonShiftHours: OverlapOfWorkHoursWithSpecialCase.afternoonShiftHours,
+                    nightShiftHours: OverlapOfWorkHoursWithSpecialCase.nightShiftHours,
+                    multiple: scr.multiple,
+                  });
+                }
+              }
+              console.log(repetitionOfSpecialRecord);
+              if (repetitionOfSpecialRecord.length > 1) {
+                for (let i = 0; i < repetitionOfSpecialRecord.length - 1; i++) {
+                  let currentRecord = repetitionOfSpecialRecord[i];
+                  let nextRecord = repetitionOfSpecialRecord[i + 1];
+
+                  let repetition = new ShiftHourCalculator(
+                    moment.max(currentRecord.begin, nextRecord.begin).hour(),
+                    moment.min(currentRecord.end, nextRecord.end).hour()
+                  );
+                  repetition.calculate();
+
+                  ['morningShiftHours', 'afternoonShiftHours', 'nightShiftHours'].forEach((shiftType) => {
+                    currentRecord[shiftType] -= repetition[shiftType];
+                    nextRecord[shiftType] -= repetition[shiftType];
+
+                    currentRecord[`repetitionOf${shiftType.charAt(0).toUpperCase() + shiftType.slice(1)}`] =
+                      repetition[shiftType];
+                    nextRecord[`repetitionOf${shiftType.charAt(0).toUpperCase() + shiftType.slice(1)}`] =
+                      repetition[shiftType];
+                  });
+                }
+              }
+
+              
+
               return (
                 <tr key={i} className="h-10 hover:bg-emerald-50">
                   <td className="">{v.individual_name}</td>
@@ -203,12 +275,17 @@ const ClockRecord = () => {
                   <td>{v.out_lat_lng}</td>
                   <td className="w-fit">{moment(v.in_time).format('YYYY年MM月DD日 HH點mm分')}</td>
                   <td className="w-fit">{moment(v.out_time).format('YYYY年MM月DD日 HH點mm分')}</td>
-                  <td>{total_wage}</td>
+                  {/* <td>{totalWage}</td> */}
                   <td>
                     <div className="bg-sky-700 text-white border px-3 py-1 w-max cursor-pointer">編輯</div>
                   </td>
                   <td>
-                    <div className="bg-red-600 text-white border px-3 py-1 w-max cursor-pointer">刪除</div>
+                    <div
+                      className="bg-red-600 text-white border px-3 py-1 w-max cursor-pointer"
+                      onClick={() => handleDelete(v.id)}
+                    >
+                      刪除
+                    </div>
                   </td>
                 </tr>
               );
