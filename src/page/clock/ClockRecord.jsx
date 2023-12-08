@@ -210,6 +210,12 @@ const ClockRecord = () => {
               let basicMorningWage = basicWage.morningShiftHours * v.morning_wage;
               let basicAfternoonWage = basicWage.afternoonShiftHours * v.afternoon_wage;
               let basicNightWage = basicWage.nightShiftHours * v.night_wage;
+              let morningBonus = 0;
+              let afternoonBonus = 0;
+              let nightBonus = 0;
+              let overlapOfBaseValueForMorningSpecial = [];
+              let overlapOfBaseValueForAfternoonSpecial = [];
+              let overlapOfBaseValueForNightSpecial = [];
               let repetitionOfSpecialRecord = [];
 
               for (const scr of specialCaseRecord) {
@@ -218,22 +224,13 @@ const ClockRecord = () => {
                   (scr.begin < v.out_time && scr.end > v.out_time) ||
                   (scr.begin < v.in_time && scr.end > v.out_time)
                 ) {
-                  {
-                    /* console.log(scr.begin < v.in_time && scr.end < v.out_time);
-                  console.log(scr.begin > v.in_time && scr.end > v.out_time);
-                  console.log(scr.begin < v.in_time && scr.end > v.out_time); */
-                  }
-                  console.log(moment.max(moment(scr.begin), moment(v.in_time)).format('YYYY年MM月DD日 HH點mm分'));
-                  console.log(moment.min(moment(scr.end), moment(v.out_time)).format('YYYY年MM月DD日 HH點mm分'));
-                  let OverlapOfWorkHoursWithSpecialCase = new ShiftHourCalculator(
-                    moment.max(moment(scr.begin), moment(v.in_time)).hour(),
-                    moment.min(moment(scr.end), moment(v.out_time)).hour()
-                  );
+                  let begin = moment.max(moment(scr.begin), moment(v.in_time));
+                  let end = moment.min(moment(scr.end), moment(v.out_time));
+                  let OverlapOfWorkHoursWithSpecialCase = new ShiftHourCalculator(begin.hour(), end.hour());
                   OverlapOfWorkHoursWithSpecialCase.calculate();
                   repetitionOfSpecialRecord.push({
-                    id: repetitionOfSpecialRecord.length + 1,
-                    begin: moment.max(moment(scr.begin), moment(v.in_time)),
-                    end: moment.min(moment(scr.end), moment(v.out_time)),
+                    begin: begin,
+                    end: end,
                     morningShiftHours: OverlapOfWorkHoursWithSpecialCase.morningShiftHours,
                     afternoonShiftHours: OverlapOfWorkHoursWithSpecialCase.afternoonShiftHours,
                     nightShiftHours: OverlapOfWorkHoursWithSpecialCase.nightShiftHours,
@@ -241,7 +238,6 @@ const ClockRecord = () => {
                   });
                 }
               }
-              console.log(repetitionOfSpecialRecord);
               if (repetitionOfSpecialRecord.length > 1) {
                 for (let i = 0; i < repetitionOfSpecialRecord.length - 1; i++) {
                   let currentRecord = repetitionOfSpecialRecord[i];
@@ -264,9 +260,38 @@ const ClockRecord = () => {
                   });
                 }
               }
+              for (let i = 0; i < repetitionOfSpecialRecord.length; i++) {
+                let baseValueForMorningSpecial;
+                let baseValueForAfternoonSpecial;
+                let baseValueForNightSpecial;
+                if (overlapOfBaseValueForMorningSpecial.length === 0) {
+                  baseValueForMorningSpecial = v.morning_wage * (repetitionOfSpecialRecord[i].multiple - 1);
+                  baseValueForAfternoonSpecial = v.afternoon_wage * (repetitionOfSpecialRecord[i].multiple - 1);
+                  baseValueForNightSpecial = v.night_wage * (repetitionOfSpecialRecord[i].multiple - 1);
+                  console.log(v.morning_wage,'morning')
+                  overlapOfBaseValueForMorningSpecial.push(
+                    v.morning_wage * (repetitionOfSpecialRecord[i].multiple - 1)
+                  );
+                  + 
+                  overlapOfBaseValueForAfternoonSpecial.push( 
+                    v.afternoon_wage * (repetitionOfSpecialRecord[i].multiple - 1)
+                  );
+                  overlapOfBaseValueForNightSpecial.push(v.night_wage * (repetitionOfSpecialRecord[i].multiple - 1));
+                } else if(overlapOfBaseValueForMorningSpecial.length === 1){
+                  
+                }
+              }
 
-              
+              {
+                /* console.log(morningBonus);
+              console.log(afternoonBonus);
+              console.log(nightBonus); */
+              }
+              console.log(overlapOfBaseValueForMorningSpecial);
+              console.log(overlapOfBaseValueForAfternoonSpecial);
+              console.log(overlapOfBaseValueForNightSpecial);
 
+              console.log(repetitionOfSpecialRecord);
               return (
                 <tr key={i} className="h-10 hover:bg-emerald-50">
                   <td className="">{v.individual_name}</td>
