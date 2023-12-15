@@ -3,6 +3,9 @@ import auth from '../../auth/auth';
 import { useState, useEffect } from 'react';
 import { API_URL } from '../../utils/config';
 import moment from 'moment/moment';
+import FileSaver from 'file-saver';
+import * as XLSX from 'xlsx';
+const { read, utils } = XLSX;
 
 const ClockRecord = () => {
   auth();
@@ -14,7 +17,8 @@ const ClockRecord = () => {
     end: '',
     settlement_id: '',
   });
-  console.log(searchCondition);
+  let recordToExcelFormat = [];
+
   function handleChange(e) {
     if (e.target.tagName.toLowerCase() == 'div') {
       setSearchCondition((prev) => ({ ...prev, [e.target.dataset.name]: e.target.dataset.value }));
@@ -63,8 +67,112 @@ const ClockRecord = () => {
     }
   }
 
+  const fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
+  const fileExtention = '.xlsx';
+  const exportToExcel = async () => {
+    const modifiedRecord = recordToExcelFormat.map((array) => {
+      let individual_fee = 0;
+      array.forEach((v) => {
+        individual_fee += v.wage;
+        console.log(v);
+      });
+
+      console.log(array);
+
+      // 在每個陣列的最後添加一個新的物件
+      return [
+        ...array,
+        {
+          date: '總和',
+          time: '',
+          employee_name: '',
+          wage: individual_fee,
+        },
+        {
+          date: '',
+          time: '',
+          employee_name: '',
+          wage: '',
+        },
+        {
+          date: '',
+          time: '',
+          employee_name: '',
+          wage: '',
+        },
+        {
+          date: '特護',
+          time: '薪資',
+          employee_name: '費用',
+          wage: '總計',
+        },
+      ];
+    });
+
+    for (let i = 0; i < recordToExcelFormat.length; i++) {
+      let employeeWage = [];
+      for (let j = 0; j < recordToExcelFormat[i].length; j++) {
+        let currentEmployee = recordToExcelFormat[i][j];
+
+        let matchingEmployee = employeeWage.find((e) => e.employee_name === currentEmployee.employee_name);
+
+        if (matchingEmployee) {
+          matchingEmployee.date += currentEmployee.wage;
+          matchingEmployee.employee_name += currentEmployee.wage;
+        } else {
+          employeeWage.push({
+            date: currentEmployee.employee_name,
+            time: currentEmployee.wage,
+            employee_name: '',
+            wage: currentEmployee.wage,
+          });
+        }
+      }
+      console.log('employeeWage', employeeWage);
+      console.log('modifiedRecord[i]', modifiedRecord[i]);
+      modifiedRecord[i] = modifiedRecord[i].concat(employeeWage);
+    }
+
+    modifiedRecord.map((file) => {
+      console.log('file', file);
+      let removeIndividual = file.map(({ individual_id, ...rest }) => rest);
+      const merge = [];
+
+      for (let i = 0; i < file.length - 1; i++) {
+        const currentDate = file[i].date;
+        const nextDate = file[i + 1].date;
+        if (currentDate === '總和') {
+          break;
+        }
+        if (currentDate != nextDate) {
+          // 如果還沒有追蹤過這個 date，則初始化起始行數
+          merge.push({ s: { r: i + 1, c: 0 }, e: { r: i + 1, c: 0 } });
+        } else {
+          // 如果已經追蹤過這個 date，則更新結束行數
+          merge[merge.length - 1].e.r = i + 1;
+        }
+      }
+
+      console.log(merge);
+      const header = ['date', 'time', 'employee_name', 'wage'];
+      const headerDisplay = { date: '日期', time: '時間', employee_name: '簽到人', wage: '金額' };
+      const correctHeader = [headerDisplay, ...removeIndividual];
+      const ws = XLSX.utils.json_to_sheet(correctHeader, { header: header, skipHeader: true });
+      const wb = { Sheets: { data: ws }, SheetNames: ['data'] };
+      // const merge = [{ s: { r: 1, c: 0 }, e: { r: 3, c: 0 } }];
+      // ws['!merges'] = merge;
+      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const data = new Blob([excelBuffer], { type: fileType });
+      const fileName = `${
+        searchCondition.begin != '' && searchCondition.end != ''
+          ? searchCondition.begin + '-' + searchCondition.end + file[0].individual_id + fileExtention
+          : file[0].individual_id + fileExtention
+      }`;
+      FileSaver.saveAs(data, fileName);
+    });
+  };
+
   useEffect(() => {
-    fetchRecordData();
     fetchSettlementData();
   }, []);
 
@@ -72,29 +180,34 @@ const ClockRecord = () => {
     fetchRecordData(searchCondition);
     fetchSpecialCaseRecordData(searchCondition);
   }, [searchCondition]);
-  console.log(specialCaseRecord);
+
   return (
     <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center">
       <div className="w-full 2xl:w-3/4 flex flex-col md:gap-16">
         <div className="flex flex-col justify-center items-start md:gap-6">
-          <div className="flex flex-col justify-center items-start md:gap-2">
-            <div>篩選時間</div>
-            <div>
-              <input
-                type="datetime-local"
-                className="bg-white border border-black"
-                name="begin"
-                value={searchCondition.begin}
-                onChange={(e) => handleChange(e)}
-              />
-              <span> ~ </span>
-              <input
-                type="datetime-local"
-                className="bg-white border border-black"
-                name="end"
-                value={searchCondition.end}
-                onChange={(e) => handleChange(e)}
-              />
+          <div className="w-full flex justify-between items-start">
+            <div className="flex flex-col justify-center items-start md:gap-2">
+              <div>篩選時間</div>
+              <div>
+                <input
+                  type="datetime-local"
+                  className="bg-white border border-black"
+                  name="begin"
+                  value={searchCondition.begin}
+                  onChange={(e) => handleChange(e)}
+                />
+                <span> ~ </span>
+                <input
+                  type="datetime-local"
+                  className="bg-white border border-black"
+                  name="end"
+                  value={searchCondition.end}
+                  onChange={(e) => handleChange(e)}
+                />
+              </div>
+            </div>
+            <div className="px-2 py-2 bg-sky-600 text-white cursor-pointer" onClick={exportToExcel}>
+              Excel匯出
             </div>
           </div>
           <div className="flex flex-col justify-center items-start md:gap-2">
@@ -134,8 +247,18 @@ const ClockRecord = () => {
           </thead>
           <tbody>
             {record.map((v, i) => {
+              const findPrevious = record.find(({ out_time }) => {
+                return moment(out_time).format('YYYYMMDDHH') === moment(v.in_time).format('YYYYMMDDHH');
+              });
               const workStart = moment(v.in_time).hour();
-              const workEnd = moment(v.out_time).hour();
+              let workEnd = 0;
+              if (findPrevious != undefined) {
+                const compensation = moment(v.out_time).add(4, 'hours');
+                workEnd = compensation.hour();
+              } else {
+                workEnd = moment(v.out_time).hour();
+              }
+              console.log(findPrevious);
 
               class ShiftHourCalculator {
                 constructor(workStart, workEnd) {
@@ -197,16 +320,9 @@ const ClockRecord = () => {
                   }
                 }
               }
-
               const basicWage = new ShiftHourCalculator(workStart, workEnd);
-              {
-                /* const totalWage =
-                morningShiftHours * v.morning_wage +
-                afternoonShiftHours * v.afternoon_wage +
-                nightShiftHours * v.night_wage; */
-              }
+              basicWage.calculate();
 
-              let specialBonus = 0;
               let basicMorningWage = basicWage.morningShiftHours * v.morning_wage;
               let basicAfternoonWage = basicWage.afternoonShiftHours * v.afternoon_wage;
               let basicNightWage = basicWage.nightShiftHours * v.night_wage;
@@ -226,6 +342,10 @@ const ClockRecord = () => {
                 ) {
                   let begin = moment.max(moment(scr.begin), moment(v.in_time));
                   let end = moment.min(moment(scr.end), moment(v.out_time));
+                  {
+                    /* console.log(moment(begin).format(''));
+                  console.log(moment(end).format('')); */
+                  }
                   let OverlapOfWorkHoursWithSpecialCase = new ShiftHourCalculator(begin.hour(), end.hour());
                   OverlapOfWorkHoursWithSpecialCase.calculate();
                   repetitionOfSpecialRecord.push({
@@ -237,6 +357,9 @@ const ClockRecord = () => {
                     multiple: scr.multiple,
                   });
                 }
+              }
+              {
+                /* console.log(repetitionOfSpecialRecord); */
               }
               if (repetitionOfSpecialRecord.length > 1) {
                 for (let i = 0; i < repetitionOfSpecialRecord.length - 1; i++) {
@@ -250,9 +373,6 @@ const ClockRecord = () => {
                   repetition.calculate();
 
                   ['morningShiftHours', 'afternoonShiftHours', 'nightShiftHours'].forEach((shiftType) => {
-                    currentRecord[shiftType] -= repetition[shiftType];
-                    nextRecord[shiftType] -= repetition[shiftType];
-
                     currentRecord[`repetitionOf${shiftType.charAt(0).toUpperCase() + shiftType.slice(1)}`] =
                       repetition[shiftType];
                     nextRecord[`repetitionOf${shiftType.charAt(0).toUpperCase() + shiftType.slice(1)}`] =
@@ -260,38 +380,208 @@ const ClockRecord = () => {
                   });
                 }
               }
+
               for (let i = 0; i < repetitionOfSpecialRecord.length; i++) {
-                let baseValueForMorningSpecial;
-                let baseValueForAfternoonSpecial;
-                let baseValueForNightSpecial;
-                if (overlapOfBaseValueForMorningSpecial.length === 0) {
-                  baseValueForMorningSpecial = v.morning_wage * (repetitionOfSpecialRecord[i].multiple - 1);
-                  baseValueForAfternoonSpecial = v.afternoon_wage * (repetitionOfSpecialRecord[i].multiple - 1);
-                  baseValueForNightSpecial = v.night_wage * (repetitionOfSpecialRecord[i].multiple - 1);
-                  console.log(v.morning_wage,'morning')
-                  overlapOfBaseValueForMorningSpecial.push(
-                    v.morning_wage * (repetitionOfSpecialRecord[i].multiple - 1)
-                  );
-                  + 
-                  overlapOfBaseValueForAfternoonSpecial.push( 
-                    v.afternoon_wage * (repetitionOfSpecialRecord[i].multiple - 1)
-                  );
-                  overlapOfBaseValueForNightSpecial.push(v.night_wage * (repetitionOfSpecialRecord[i].multiple - 1));
-                } else if(overlapOfBaseValueForMorningSpecial.length === 1){
-                  
-                }
+                let baseValueForMorningSpecial = calculateBaseValue(
+                  v.morning_wage,
+                  overlapOfBaseValueForMorningSpecial,
+                  repetitionOfSpecialRecord[i].multiple
+                );
+                let baseValueForAfternoonSpecial = calculateBaseValue(
+                  v.afternoon_wage,
+                  overlapOfBaseValueForAfternoonSpecial,
+                  repetitionOfSpecialRecord[i].multiple
+                );
+                let baseValueForNightSpecial = calculateBaseValue(
+                  v.night_wage,
+                  overlapOfBaseValueForNightSpecial,
+                  repetitionOfSpecialRecord[i].multiple
+                );
+
+                overlapOfBaseValueForMorningSpecial.push(baseValueForMorningSpecial);
+                overlapOfBaseValueForAfternoonSpecial.push(baseValueForAfternoonSpecial);
+                overlapOfBaseValueForNightSpecial.push(baseValueForNightSpecial);
+              }
+
+              function calculateBaseValue(baseWage, overlapArray, multiple) {
+                let totalOverlap = overlapArray.reduce((acc, val) => acc + val, 0);
+                return (baseWage + totalOverlap) * (multiple - 1);
               }
 
               {
-                /* console.log(morningBonus);
-              console.log(afternoonBonus);
-              console.log(nightBonus); */
+                /* console.log(repetitionOfSpecialRecord); */
               }
-              console.log(overlapOfBaseValueForMorningSpecial);
-              console.log(overlapOfBaseValueForAfternoonSpecial);
-              console.log(overlapOfBaseValueForNightSpecial);
+              for (let i = 0; i < repetitionOfSpecialRecord.length; i++) {
+                if (repetitionOfSpecialRecord.length === 1) {
+                  morningBonus +=
+                    repetitionOfSpecialRecord[i].morningShiftHours * overlapOfBaseValueForMorningSpecial[0];
+                  afternoonBonus +=
+                    repetitionOfSpecialRecord[i].afternoonShiftHours * overlapOfBaseValueForAfternoonSpecial[0];
+                  nightBonus += repetitionOfSpecialRecord[i].nightShiftHours * overlapOfBaseValueForNightSpecial[0];
+                } else if (repetitionOfSpecialRecord.length > 1) {
+                  if (i === 0) {
+                    morningBonus +=
+                      repetitionOfSpecialRecord[i].morningShiftHours * overlapOfBaseValueForMorningSpecial[0];
+                    afternoonBonus +=
+                      repetitionOfSpecialRecord[i].afternoonShiftHours * overlapOfBaseValueForAfternoonSpecial[0];
+                    nightBonus += repetitionOfSpecialRecord[i].nightShiftHours * overlapOfBaseValueForNightSpecial[0];
+                    {
+                      /* console.log(
+                      repetitionOfSpecialRecord[i].morningShiftHours * overlapOfBaseValueForMorningSpecial[0]
+                    ); */
+                    }
+                  } else if (i === 1) {
+                    if (
+                      repetitionOfSpecialRecord[i].morningShiftHours -
+                        repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours !=
+                      0
+                    ) {
+                      morningBonus +=
+                        (repetitionOfSpecialRecord[i].morningShiftHours -
+                          repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours) *
+                          overlapOfBaseValueForMorningSpecial[0] +
+                        repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours *
+                          overlapOfBaseValueForMorningSpecial[1];
+                      {
+                        /* console.log(
+                        (repetitionOfSpecialRecord[i].morningShiftHours -
+                          repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours) *
+                          overlapOfBaseValueForMorningSpecial[0] +
+                          repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours *
+                            overlapOfBaseValueForMorningSpecial[1]
+                      ); */
+                      }
+                    } else {
+                      if (repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours === 0) {
+                        morningBonus +=
+                          repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours *
+                          overlapOfBaseValueForMorningSpecial[0];
+                      } else {
+                        morningBonus +=
+                          repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours *
+                          overlapOfBaseValueForMorningSpecial[1];
+                        console.log(
+                          repetitionOfSpecialRecord[i].morningShiftHours * overlapOfBaseValueForMorningSpecial[0] +
+                            repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours *
+                              overlapOfBaseValueForMorningSpecial[1]
+                        );
+                      }
+                    }
 
-              console.log(repetitionOfSpecialRecord);
+                    if (
+                      repetitionOfSpecialRecord[i].afternoonShiftHours -
+                        repetitionOfSpecialRecord[i].repetitionOfAfternoonShiftHours !=
+                      0
+                    ) {
+                      afternoonBonus +=
+                        (repetitionOfSpecialRecord[i].afternoonShiftHours -
+                          repetitionOfSpecialRecord[i].repetitionOfAfternoonShiftHours) *
+                          overlapOfBaseValueForAfternoonSpecial[0] +
+                        repetitionOfSpecialRecord[i].repetitionOfAfternoonShiftHours *
+                          overlapOfBaseValueForAfternoonSpecial[1];
+                    } else {
+                      if (repetitionOfSpecialRecord[i].repetitionOfAfternoonShiftHours === 0) {
+                        afternoonBonus +=
+                          repetitionOfSpecialRecord[i].repetitionOfAfternoonShiftHours *
+                          overlapOfBaseValueForAfternoonSpecial[0];
+                      } else {
+                        afternoonBonus +=
+                          repetitionOfSpecialRecord[i].repetitionOfAfternoonShiftHours *
+                          overlapOfBaseValueForAfternoonSpecial[1];
+                      }
+                    }
+
+                    if (
+                      repetitionOfSpecialRecord[i].nightShiftHours -
+                        repetitionOfSpecialRecord[i].repetitionOfNightShiftHours !=
+                      0
+                    ) {
+                      nightBonus +=
+                        (repetitionOfSpecialRecord[i].nightShiftHours -
+                          repetitionOfSpecialRecord[i].repetitionOfNightShiftHours) *
+                          overlapOfBaseValueForNightSpecial[0] +
+                        repetitionOfSpecialRecord[i].repetitionOfNightShiftHours * overlapOfBaseValueForNightSpecial[1];
+                    } else {
+                      if (repetitionOfSpecialRecord[i].repetitionOfNightShiftHours === 0) {
+                        nightBonus +=
+                          repetitionOfSpecialRecord[i].repetitionOfNightShiftHours *
+                          overlapOfBaseValueForNightSpecial[0];
+                      } else {
+                        nightBonus +=
+                          repetitionOfSpecialRecord[i].repetitionOfNightShiftHours *
+                          overlapOfBaseValueForNightSpecial[1];
+                      }
+                    }
+                  }
+                }
+              }
+              {
+                /* console.log('basicMorningWage', basicMorningWage);
+              console.log('morningBonus', morningBonus);
+              console.log('basicAfternoonWage', basicAfternoonWage);
+              console.log('afternoonBonus', afternoonBonus);
+              console.log('basicNightWage', basicNightWage);
+              console.log('nightBonus', nightBonus); */
+              }
+
+              let totalWage =
+                basicWage.morningShiftHours * v.morning_wage +
+                basicWage.afternoonShiftHours * v.afternoon_wage +
+                basicWage.nightShiftHours * v.night_wage;
+              if (repetitionOfSpecialRecord.length > 0) {
+                totalWage =
+                  basicMorningWage + morningBonus + basicAfternoonWage + afternoonBonus + basicNightWage + nightBonus;
+              }
+
+              // 把需要的資料整合成excel格式
+              if (recordToExcelFormat.length > 0) {
+                recordToExcelFormat.map((array, i) => {
+                  console.log(array[0]);
+                  const findResultIndex = array.findIndex((item) => item.individual_id === v.individual_id);
+                  {
+                    /* console.log(findResultIndex); */
+                  }
+                  if (findResultIndex !== -1) {
+                    recordToExcelFormat[findResultIndex].push({
+                      individual_id: v.individual_id,
+                      date: moment(v.in_time).format('MM/DD'),
+                      time: `${
+                        moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()
+                      }00-${moment(v.out_time).hour()}00`,
+                      employee_name: v.name.trim(),
+                      wage: totalWage,
+                    });
+                  } else {
+                    recordToExcelFormat.push([
+                      {
+                        individual_id: v.individual_id,
+                        date: moment(v.in_time).format('MM/DD'),
+                        time: `${
+                          moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()
+                        }00-${moment(v.out_time).hour()}00`,
+                        employee_name: v.name.trim(),
+                        wage: totalWage,
+                      },
+                    ]);
+                  }
+                });
+              } else {
+                recordToExcelFormat.push([
+                  {
+                    individual_id: v.individual_id,
+                    date: moment(v.in_time).format('MM/DD'),
+                    time: `${
+                      moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()
+                    }00-${moment(v.out_time).hour()}00`,
+                    employee_name: v.name.trim(),
+                    wage: totalWage,
+                  },
+                ]);
+              }
+
+              {
+                /* console.log(record); */
+              }
               return (
                 <tr key={i} className="h-10 hover:bg-emerald-50">
                   <td className="">{v.individual_name}</td>
@@ -300,7 +590,7 @@ const ClockRecord = () => {
                   <td>{v.out_lat_lng}</td>
                   <td className="w-fit">{moment(v.in_time).format('YYYY年MM月DD日 HH點mm分')}</td>
                   <td className="w-fit">{moment(v.out_time).format('YYYY年MM月DD日 HH點mm分')}</td>
-                  {/* <td>{totalWage}</td> */}
+                  <td>{totalWage}</td>
                   <td>
                     <div className="bg-sky-700 text-white border px-3 py-1 w-max cursor-pointer">編輯</div>
                   </td>
