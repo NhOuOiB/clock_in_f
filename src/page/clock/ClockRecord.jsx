@@ -5,7 +5,7 @@ import { API_URL } from '../../utils/config';
 import moment from 'moment/moment';
 import FileSaver from 'file-saver';
 import * as XLSX from 'xlsx';
-const { read, utils } = XLSX;
+import { Link } from 'react-router-dom';
 
 const ClockRecord = () => {
   auth();
@@ -183,8 +183,8 @@ const ClockRecord = () => {
 
   return (
     <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center">
-      <div className="w-full 2xl:w-3/4 flex flex-col md:gap-16">
-        <div className="flex flex-col justify-center items-start md:gap-6">
+      <div className="w-full 2xl:w-3/4 flex flex-col">
+        <div className="flex flex-col justify-center items-start md:gap-6 md:mb-16">
           <div className="w-full flex justify-between items-start">
             <div className="flex flex-col justify-center items-start md:gap-2">
               <div>篩選時間</div>
@@ -231,6 +231,14 @@ const ClockRecord = () => {
             </div>
           </div>
         </div>
+        <div className='flex flex-col items-end gap-2'>
+
+        <Link
+          to={'/addClockRecord'}
+          className="h-full flex justify-center items-center font-bold bg-green-600 text-white border w-fit px-3 py-1 cursor-pointer"
+        >
+          新增
+        </Link>
         <table className="w-full overflow-auto table-auto border border-gray-400">
           <thead className="bg-gray-200 h-10">
             <tr className="">
@@ -323,6 +331,10 @@ const ClockRecord = () => {
               const basicWage = new ShiftHourCalculator(workStart, workEnd);
               basicWage.calculate();
 
+              console.log(basicWage.morningShiftHours, 'basicWage.morningShiftHours');
+              console.log(basicWage.afternoonShiftHours, 'basicWage.afternoonShiftHours');
+              console.log(basicWage.nightShiftHours, 'basicWage.nightShiftHours');
+
               let basicMorningWage = basicWage.morningShiftHours * v.morning_wage;
               let basicAfternoonWage = basicWage.afternoonShiftHours * v.afternoon_wage;
               let basicNightWage = basicWage.nightShiftHours * v.night_wage;
@@ -333,19 +345,22 @@ const ClockRecord = () => {
               let overlapOfBaseValueForAfternoonSpecial = [];
               let overlapOfBaseValueForNightSpecial = [];
               let repetitionOfSpecialRecord = [];
-
+console.log(specialCaseRecord)
               for (const scr of specialCaseRecord) {
                 if (
-                  (scr.begin < v.in_time && scr.end > v.in_time) ||
-                  (scr.begin < v.out_time && scr.end > v.out_time) ||
+                  (scr.begin < v.in_time && scr.end > v.in_time && scr.end < v.out_time) ||
+                  (scr.begin < v.out_time && scr.begin > v.in_time && scr.end > v.out_time) ||
                   (scr.begin < v.in_time && scr.end > v.out_time)
                 ) {
                   let begin = moment.max(moment(scr.begin), moment(v.in_time));
                   let end = moment.min(moment(scr.end), moment(v.out_time));
-                  {
-                    /* console.log(moment(begin).format(''));
-                  console.log(moment(end).format('')); */
-                  }
+
+                  console.log(scr.begin < v.in_time && scr.end > v.in_time && scr.end < v.out_time);
+                  console.log(scr.begin < v.out_time && scr.begin > v.in_time && scr.end > v.out_time);
+                  console.log(scr.begin < v.in_time && scr.end > v.out_time);
+                  console.log(moment(scr.in_time).format(''));
+                  console.log(moment(scr.out_time).format(''));
+
                   let OverlapOfWorkHoursWithSpecialCase = new ShiftHourCalculator(begin.hour(), end.hour());
                   OverlapOfWorkHoursWithSpecialCase.calculate();
                   repetitionOfSpecialRecord.push({
@@ -358,9 +373,9 @@ const ClockRecord = () => {
                   });
                 }
               }
-              {
-                /* console.log(repetitionOfSpecialRecord); */
-              }
+              
+              console.log(repetitionOfSpecialRecord);
+              
               if (repetitionOfSpecialRecord.length > 1) {
                 for (let i = 0; i < repetitionOfSpecialRecord.length - 1; i++) {
                   let currentRecord = repetitionOfSpecialRecord[i];
@@ -592,7 +607,12 @@ const ClockRecord = () => {
                   <td className="w-fit">{moment(v.out_time).format('YYYY年MM月DD日 HH點mm分')}</td>
                   <td>{totalWage}</td>
                   <td>
-                    <div className="bg-sky-700 text-white border px-3 py-1 w-max cursor-pointer">編輯</div>
+                    <Link
+                      to={`/addClockRecord/${v.id}`}
+                      className="h-full flex justify-center items-center font-bold bg-sky-700 text-white border px-3 py-1 w-max cursor-pointer"
+                    >
+                      編輯
+                    </Link>
                   </td>
                   <td>
                     <div
@@ -607,6 +627,7 @@ const ClockRecord = () => {
             })}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
