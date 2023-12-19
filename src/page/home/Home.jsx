@@ -1,10 +1,10 @@
 import Clock from '../clock/Clock';
 import Header from '../../component/Header';
 import ClockRecord from '../clock/ClockRecord';
+import AddClockRecord from '../clock/AddClockRecord';
 import { Routes, Route } from 'react-router-dom';
 import AddEmployee from '../employee/AddEmployee';
 import auth from '../../auth/auth';
-import MakeUpClockIn from '../makeUpClockIn/MakeUpClockIn';
 import Employee from '../employee/Employee';
 import IndividualCase from '../individual/IndividualCase';
 import AddIndividual from '../individual/AddIndividual';
@@ -20,6 +20,8 @@ const Home = () => {
       <Routes>
         <Route path="/clock" element={<Clock />}></Route>
         <Route path="/clockRecord" element={<ClockRecord />}></Route>
+        <Route path="/addClockRecord" element={<AddClockRecord />}></Route>
+        <Route path="/addClockRecord/:id" element={<AddClockRecord />}></Route>
         <Route path="/addEmployee" element={<AddEmployee />}></Route>
         <Route path="/addEmployee/:employee_id" element={<AddEmployee />} />
         <Route path="/employee" element={<Employee />}></Route>
@@ -29,7 +31,6 @@ const Home = () => {
         <Route path="/specialCaseRecord" element={<SpecialCaseRecord />}></Route>
         <Route path="/addSpecialCaseRecord" element={<AddSpecialCaseRecord />}></Route>
         <Route path="/addSpecialCaseRecord/:id" element={<AddSpecialCaseRecord />} />
-        <Route path="/makeUpClockIn" element={<MakeUpClockIn />}></Route>
       </Routes>
     </>
   );
