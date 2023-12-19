@@ -125,14 +125,6 @@ const AddSpecialCaseRecord = () => {
         </div>
         <div className='flex justify-center'>
           <label htmlFor="">薪資倍數 : </label>
-          {/* <input
-            type="text"
-            className={` border bg-[#eee] text-[#888]`}
-            id="multiple"
-            value={input.multiple}
-            // readOnly
-            // onChange={(e) => handleChange(e)}
-          /> */}
           <div className="w-44 h-7 border bg-[#eee] text-[#888] ms-1 text-left px-1">{input.multiple}</div>
         </div>
         <div>
