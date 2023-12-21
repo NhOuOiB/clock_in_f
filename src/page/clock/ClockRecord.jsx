@@ -255,19 +255,6 @@ const ClockRecord = () => {
           </thead>
           <tbody>
             {record.map((v, i) => {
-              const findPrevious = record.find(({ out_time }) => {
-                return moment(out_time).format('YYYYMMDDHH') === moment(v.in_time).format('YYYYMMDDHH');
-              });
-              const workStart = moment(v.in_time).hour();
-              let workEnd = 0;
-              if (findPrevious != undefined) {
-                const compensation = moment(v.out_time).add(4, 'hours');
-                workEnd = compensation.hour();
-              } else {
-                workEnd = moment(v.out_time).hour();
-              }
-              console.log(findPrevious);
-
               class ShiftHourCalculator {
                 constructor(workStart, workEnd) {
                   this.workStart = workStart;
@@ -275,6 +262,7 @@ const ClockRecord = () => {
                   this.morningShiftHours = 0;
                   this.afternoonShiftHours = 0;
                   this.nightShiftHours = 0;
+                  this.totalHour = 0
                 }
 
                 calculate() {
@@ -326,14 +314,51 @@ const ClockRecord = () => {
                       this.nightShiftHours = Math.min(this.workEnd, 8) - Math.max(this.workStart, 0);
                     }
                   }
+                  this.totalHour = this.morningShiftHours + this.afternoonShiftHours + this.nightShiftHours
                 }
               }
+
+
+              const findPrevious = record.find(({ out_time }) => {
+                return moment(out_time).format('YYYYMMDDHH') === moment(v.in_time).format('YYYYMMDDHH');
+              });
+              const workStart = moment(v.in_time).hour();
+              let workEnd = moment(v.out_time).hour();
+
+              const totalHour = new ShiftHourCalculator(workStart, workEnd);
+              totalHour.calculate();
+              console.log(record)
+
+                let supplement = 0
+              if (findPrevious === undefined) {
+                if (v.type_name === '一般') {
+                  
+                  console.log(totalHour.totalHour, 'totalhour.totalHour');
+                if (totalHour.totalHour < 8) {
+                  supplement = 8 - totalHour.totalHour
+              }
+                } else if (v.type_name === '洗腎') {
+               if (totalHour.totalHour < 4) {
+                 supplement = 4 - totalHour.totalHour;
+               } 
+                } else if (v.type_name === '陪診') {
+                if (totalHour.totalHour < 6) {
+                  supplement = 6 - totalHour.totalHour;
+                }  
+                }
+                console.log(supplement, 'supplement')
+              }
+                let compensation = moment(v.out_time).add(supplement, 'hours');
+                console.log(compensation.hour(), 'compensation')
+                workEnd = compensation.hour();
+              
               const basicWage = new ShiftHourCalculator(workStart, workEnd);
               basicWage.calculate();
 
-              console.log(basicWage.morningShiftHours, 'basicWage.morningShiftHours');
+
+              {/* console.log(basicWage.morningShiftHours, 'basicWage.morningShiftHours');
               console.log(basicWage.afternoonShiftHours, 'basicWage.afternoonShiftHours');
-              console.log(basicWage.nightShiftHours, 'basicWage.nightShiftHours');
+              console.log(basicWage.nightShiftHours, 'basicWage.nightShiftHours'); */}
 
               let basicMorningWage = basicWage.morningShiftHours * v.morning_wage;
               let basicAfternoonWage = basicWage.afternoonShiftHours * v.afternoon_wage;
@@ -345,7 +370,7 @@ const ClockRecord = () => {
               let overlapOfBaseValueForAfternoonSpecial = [];
               let overlapOfBaseValueForNightSpecial = [];
               let repetitionOfSpecialRecord = [];
-console.log(specialCaseRecord)
+
               for (const scr of specialCaseRecord) {
                 if (
                   (scr.begin < v.in_time && scr.end > v.in_time && scr.end < v.out_time) ||
@@ -353,13 +378,16 @@ console.log(specialCaseRecord)
                   (scr.begin < v.in_time && scr.end > v.out_time)
                 ) {
                   let begin = moment.max(moment(scr.begin), moment(v.in_time));
-                  let end = moment.min(moment(scr.end), moment(v.out_time));
+                  let end = moment.min(moment(scr.end), compensation);
 
                   console.log(scr.begin < v.in_time && scr.end > v.in_time && scr.end < v.out_time);
                   console.log(scr.begin < v.out_time && scr.begin > v.in_time && scr.end > v.out_time);
                   console.log(scr.begin < v.in_time && scr.end > v.out_time);
                   console.log(moment(scr.in_time).format(''));
                   console.log(moment(scr.out_time).format(''));
+
+                  console.log(end.hour(), 'end.hour()');
+                  console.log(workEnd, 'workEnd');
 
                   let OverlapOfWorkHoursWithSpecialCase = new ShiftHourCalculator(begin.hour(), end.hour());
                   OverlapOfWorkHoursWithSpecialCase.calculate();
