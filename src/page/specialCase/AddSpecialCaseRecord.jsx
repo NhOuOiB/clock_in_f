@@ -13,6 +13,7 @@ const AddSpecialCaseRecord = () => {
 
   const [input, setInput] = useState({
     special_case_id: '1',
+    individual_id: '',
     multiple:'2',
     begin: '',
     end: '',
@@ -81,7 +82,7 @@ const AddSpecialCaseRecord = () => {
     }
   }
   function handleClear() {
-    setInput({ special_case_id: '1', multiple: '', begin: '', end: '' });
+    setInput({ special_case_id: '1', individual_id: '', multiple: '', begin: '', end: '' });
   }
 
   useEffect(() => {
@@ -93,6 +94,7 @@ const AddSpecialCaseRecord = () => {
           console.log(v.begin.trim());
           setInput({
             special_case_id: v.special_case_id,
+            individual_id: v.individual_id,
             multiple: v.multiple,
             begin: moment(v.begin).format('YYYY-MM-DDTHH:mm'),
             end: moment(v.end).format('YYYY-MM-DDTHH:mm'),
@@ -108,7 +110,7 @@ const AddSpecialCaseRecord = () => {
     <div className="w-full h-[calc(100vh-48px)] flex justify-center items-center">
       <div className="w-full mx-2 2xl:w-1/3 xl:w-1/2 sm:w-2/3 h-3/4 rounded-3xl border px-5 py-14 flex flex-col justify-center gap-20">
         <div>
-          <label htmlFor="">特殊狀況 : </label>
+          <label htmlFor="special_case_id">特殊狀況 : </label>
           <select
             name="special_case_id"
             id="special_case_id"
@@ -123,12 +125,23 @@ const AddSpecialCaseRecord = () => {
             ))}
           </select>
         </div>
-        <div className='flex justify-center'>
+        <div className="flex justify-center">
+          <label htmlFor="individual_id">個案代號 : </label>
+          <input
+            type="text"
+            className="bg-white text-[#444] border ms-1"
+            id="individual_id"
+            name="individual_id"
+            value={input.individual_id}
+            onChange={(e) => handleChange(e)}
+          />
+        </div>
+        <div className="flex justify-center">
           <label htmlFor="">薪資倍數 : </label>
           <div className="w-44 h-7 border bg-[#eee] text-[#888] ms-1 text-left px-1">{input.multiple}</div>
         </div>
         <div>
-          <label htmlFor="">開始時間 : </label>
+          <label htmlFor="begin">開始時間 : </label>
           <input
             type="datetime-local"
             className="bg-white text-[#444] border"
@@ -139,7 +152,7 @@ const AddSpecialCaseRecord = () => {
           />
         </div>
         <div>
-          <label htmlFor="">結束時間 : </label>
+          <label htmlFor="end">結束時間 : </label>
           <input
             type="datetime-local"
             className="bg-white text-[#444] border"

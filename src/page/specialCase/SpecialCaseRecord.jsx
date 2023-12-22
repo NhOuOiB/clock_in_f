@@ -41,6 +41,7 @@ const SpecialCaseRecord = () => {
           <thead className="bg-gray-200 h-10">
             <tr className="">
               <th className="px-2">特殊狀況</th>
+              <th className="px-2">對象</th>
               <th className="px-2">倍數</th>
               <th className="px-2">開始時間</th>
               <th className="px-2">結束時間</th>
@@ -52,6 +53,7 @@ const SpecialCaseRecord = () => {
               return (
                 <tr key={i} className="h-10 hover:bg-emerald-50">
                   <td>{v.special_case_name}</td>
+                  <td>{v.individual_id === null || v.individual_id === '' ? '全部':`${v.individual_id}`}</td>
                   <td>{v.multiple}</td>
                   <td>{moment(v.begin).format('YYYY年MM月DD日 HH點mm分')}</td>
                   <td>{moment(v.end).format('YYYY年MM月DD日 HH點mm分')}</td>
