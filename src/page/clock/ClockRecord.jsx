@@ -18,6 +18,8 @@ const ClockRecord = () => {
     settlement_id: '',
   });
   let recordToExcelFormat = [];
+  const permission = localStorage.getItem('permission');
+  const employee_id = localStorage.getItem('userId');
 
   function handleChange(e) {
     if (e.target.tagName.toLowerCase() == 'div') {
@@ -30,7 +32,12 @@ const ClockRecord = () => {
   async function fetchRecordData(searchCondition) {
     let data;
     try {
-      data = await axios.get(`${API_URL}/getClockRecord`, { params: searchCondition });
+      if (permission == 2) {
+        data = await axios.get(`${API_URL}/getClockRecordByEmployee`, { params: { employee_id: employee_id } });
+      } else {
+        data = await axios.get(`${API_URL}/getClockRecord`, { params: searchCondition });
+      }
+      console.log(data);
       setRecord(data.data);
     } catch (error) {
       console.error('資料庫錯誤', error);
@@ -77,7 +84,8 @@ const ClockRecord = () => {
         console.log(v);
       });
 
-      console.log(array);
+      let sortedByDate = array.sort((a, b) => new Date(a.date) - new Date(b.date));
+      console.log(sortedByDate);
 
       // 在每個陣列的最後添加一個新的物件
       return [
@@ -113,12 +121,16 @@ const ClockRecord = () => {
       let employeeWage = [];
       for (let j = 0; j < recordToExcelFormat[i].length; j++) {
         let currentEmployee = recordToExcelFormat[i][j];
-
-        let matchingEmployee = employeeWage.find((e) => e.employee_name === currentEmployee.employee_name);
+        console.log(currentEmployee.employee_name, 'currentEmployee.employee_name');
+        let matchingEmployee = employeeWage.find((e) => {
+          console.log(e.date, 'e.employee_name');
+          console.log(e.date == currentEmployee.employee_name, 'e.employee_name == currentEmployee.employee_name');
+          return e.date === currentEmployee.employee_name;
+        });
 
         if (matchingEmployee) {
-          matchingEmployee.date += currentEmployee.wage;
-          matchingEmployee.employee_name += currentEmployee.wage;
+          matchingEmployee.time += Number(currentEmployee.wage);
+          matchingEmployee.wage += Number(currentEmployee.wage);
         } else {
           employeeWage.push({
             date: currentEmployee.employee_name,
@@ -140,27 +152,36 @@ const ClockRecord = () => {
 
       for (let i = 0; i < file.length - 1; i++) {
         const currentDate = file[i].date;
-        const nextDate = file[i + 1].date;
+        console.log(currentDate);
         if (currentDate === '總和') {
           break;
         }
-        if (currentDate != nextDate) {
-          // 如果還沒有追蹤過這個 date，則初始化起始行數
+        if (i == 0) {
           merge.push({ s: { r: i + 1, c: 0 }, e: { r: i + 1, c: 0 } });
         } else {
-          // 如果已經追蹤過這個 date，則更新結束行數
-          merge[merge.length - 1].e.r = i + 1;
+          const lastDate = file[i - 1].date;
+          console.log(lastDate);
+
+          if (lastDate != currentDate) {
+            // 如果還沒有追蹤過這個 date，則初始化起始行數
+            merge.push({ s: { r: i + 1, c: 0 }, e: { r: i + 1, c: 0 } });
+          } else {
+            // 如果已經追蹤過這個 date，則更新結束行數
+            console.log(merge[merge.length - 1]);
+            merge[merge.length - 1].e.r = i + 1;
+          }
         }
       }
 
-      console.log(merge);
+      console.log(merge, 'merge');
       const header = ['date', 'time', 'employee_name', 'wage'];
       const headerDisplay = { date: '日期', time: '時間', employee_name: '簽到人', wage: '金額' };
       const correctHeader = [headerDisplay, ...removeIndividual];
       const ws = XLSX.utils.json_to_sheet(correctHeader, { header: header, skipHeader: true });
       const wb = { Sheets: { data: ws }, SheetNames: ['data'] };
       // const merge = [{ s: { r: 1, c: 0 }, e: { r: 3, c: 0 } }];
-      // ws['!merges'] = merge;
+      ws['!merges'] = merge;
+
       const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const data = new Blob([excelBuffer], { type: fileType });
       const fileName = `${
@@ -184,53 +205,57 @@ const ClockRecord = () => {
   return (
     <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center">
       <div className="w-full 2xl:w-3/4 flex flex-col">
-        <div className="flex flex-col justify-center items-start md:gap-6 md:mb-16">
-          <div className="w-full flex justify-between items-start">
-            <div className="flex flex-col justify-center items-start md:gap-2">
-              <div>篩選時間</div>
-              <div>
-                <input
-                  type="datetime-local"
-                  className="bg-white border border-black"
-                  name="begin"
-                  value={searchCondition.begin}
-                  onChange={(e) => handleChange(e)}
-                />
-                <span> ~ </span>
-                <input
-                  type="datetime-local"
-                  className="bg-white border border-black"
-                  name="end"
-                  value={searchCondition.end}
-                  onChange={(e) => handleChange(e)}
-                />
+        {permission == 1 ? (
+          <div className="flex flex-col justify-center items-start md:gap-6 md:mb-16">
+            <div className="w-full flex justify-between items-start">
+              <div className="flex flex-col justify-center items-start md:gap-2">
+                <div>篩選時間</div>
+                <div>
+                  <input
+                    type="datetime-local"
+                    className="bg-white border border-black"
+                    name="begin"
+                    value={searchCondition.begin}
+                    onChange={(e) => handleChange(e)}
+                  />
+                  <span> ~ </span>
+                  <input
+                    type="datetime-local"
+                    className="bg-white border border-black"
+                    name="end"
+                    value={searchCondition.end}
+                    onChange={(e) => handleChange(e)}
+                  />
+                </div>
+              </div>
+              <div className="px-2 py-2 bg-sky-600 text-white cursor-pointer" onClick={exportToExcel}>
+                Excel匯出
               </div>
             </div>
-            <div className="px-2 py-2 bg-sky-600 text-white cursor-pointer" onClick={exportToExcel}>
-              Excel匯出
+            <div className="flex flex-col justify-center items-start md:gap-2">
+              <div>篩選結算型態</div>
+              <div className="flex gap-3">
+                {settlement.map((v, i) => {
+                  return (
+                    <div
+                      className={`border border-black py-2 px-4 rounded transition ${
+                        searchCondition.settlement_id == v.settlement_id && ' bg-black text-white'
+                      }`}
+                      data-name="settlement_id"
+                      key={i}
+                      data-value={v.settlement_id}
+                      onClick={(e) => handleChange(e)}
+                    >
+                      {v.settlement_name}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-          <div className="flex flex-col justify-center items-start md:gap-2">
-            <div>篩選結算型態</div>
-            <div className="flex gap-3">
-              {settlement.map((v, i) => {
-                return (
-                  <div
-                    className={`border border-black py-2 px-4 rounded transition ${
-                      searchCondition.settlement_id == v.settlement_id && ' bg-black text-white'
-                    }`}
-                    data-name="settlement_id"
-                    key={i}
-                    data-value={v.settlement_id}
-                    onClick={(e) => handleChange(e)}
-                  >
-                    {v.settlement_name}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        ) : (
+          ''
+        )}
         <div className="flex flex-col items-end gap-2">
           <Link
             to={'/addClockRecord'}
@@ -320,7 +345,11 @@ const ClockRecord = () => {
                 const findPrevious = record.find(({ out_time }) => {
                   return moment(out_time).format('YYYYMMDDHH') === moment(v.in_time).format('YYYYMMDDHH');
                 });
-                const workStart = moment(v.in_time).hour();
+                let workStart = moment(v.in_time).hour();
+                if (moment(v.in_time).minutes() >= 50) {
+                  
+                  workStart = moment(v.in_time).add(1, 'hours').hour();
+                }
                 let workEnd = moment(v.out_time).hour();
 
                 const totalHour = new ShiftHourCalculator(workStart, workEnd);
@@ -329,7 +358,6 @@ const ClockRecord = () => {
                 let supplement = 0;
                 if (findPrevious === undefined) {
                   if (v.type_name === '一般') {
-                    console.log(totalHour.totalHour, 'totalhour.totalHour');
                     if (totalHour.totalHour < 8) {
                       supplement = 8 - totalHour.totalHour;
                     }
@@ -349,24 +377,18 @@ const ClockRecord = () => {
                 const basicWage = new ShiftHourCalculator(workStart, workEnd);
                 basicWage.calculate();
 
-                {
-                  /* console.log(basicWage.morningShiftHours, 'basicWage.morningShiftHours');
-              console.log(basicWage.afternoonShiftHours, 'basicWage.afternoonShiftHours');
-              console.log(basicWage.nightShiftHours, 'basicWage.nightShiftHours'); */
-                }
                 let basicMorningWage;
                 let basicAfternoonWage;
                 let basicNightWage;
                 if (findPrevious === undefined && totalHour.totalHour < 8) {
                   basicMorningWage =
-                    basicWage.morningShiftHours * Math.min(v.morning_wage, v.afternoon_wage, v.night_wage);
-                  basicAfternoonWage =
-                    basicWage.afternoonShiftHours * Math.min(v.morning_wage, v.afternoon_wage, v.night_wage);
-                  basicNightWage = basicWage.nightShiftHours * Math.min(v.morning_wage, v.afternoon_wage, v.night_wage);
+                    basicAfternoonWage =
+                    basicNightWage =
+                      Math.min(v.morning_wage, v.afternoon_wage, v.night_wage);
                 } else {
-                  basicMorningWage = basicWage.morningShiftHours * v.morning_wage;
-                  basicAfternoonWage = basicWage.afternoonShiftHours * v.afternoon_wage;
-                  basicNightWage = basicWage.nightShiftHours * v.night_wage;
+                  basicMorningWage = v.morning_wage;
+                  basicAfternoonWage = v.afternoon_wage;
+                  basicNightWage = v.night_wage;
                 }
                 let morningBonus = 0;
                 let afternoonBonus = 0;
@@ -375,50 +397,33 @@ const ClockRecord = () => {
                 let overlapOfBaseValueForAfternoonSpecial = [];
                 let overlapOfBaseValueForNightSpecial = [];
                 let repetitionOfSpecialRecord = [];
+                let morningWage = basicWage.morningShiftHours * basicMorningWage;
+                let afternoonWage = basicWage.afternoonShiftHours * basicAfternoonWage;
+                let nightWage = basicWage.nightShiftHours * basicNightWage;
 
                 for (const scr of specialCaseRecord) {
                   if (
                     (scr.begin < v.in_time && scr.end > v.in_time && scr.end < v.out_time) ||
                     (scr.begin < v.out_time && scr.begin > v.in_time && scr.end > v.out_time) ||
-                    (scr.begin < v.in_time &&
-                      scr.end > v.out_time )
+                    (scr.begin < v.in_time && scr.end > v.out_time)
                   ) {
                     let begin = moment.max(moment(scr.begin), moment(v.in_time));
                     let end = moment.min(moment(scr.end), compensation);
-                    {/* console.log(v.individual_id, 'v');
-                    console.log(scr.individual_id, 'scr');
-                    console.log(scr.individual_id == v.individual_id, 'scr == v');
-                    console.log(scr.individual_id == '', 'scr == ""'); */}
-
-                    {
-                      /* 
-                    console.log(scr.begin < v.in_time && scr.end > v.in_time && scr.end < v.out_time);
-                    console.log(scr.begin < v.out_time && scr.begin > v.in_time && scr.end > v.out_time);
-                    console.log(scr.begin < v.in_time && scr.end > v.out_time);
-                    console.log(moment(scr.in_time).format(''));
-                    console.log(moment(scr.out_time).format(''));
-
-                    console.log(end.hour(), 'end.hour()');
-                    console.log(workEnd, 'workEnd'); */
-                    }
 
                     let OverlapOfWorkHoursWithSpecialCase = new ShiftHourCalculator(begin.hour(), end.hour());
                     OverlapOfWorkHoursWithSpecialCase.calculate();
                     if (scr.individual_id == '' || scr.individual_id == v.individual_id) {
-                      
-                    repetitionOfSpecialRecord.push({
-                      begin: begin,
-                      end: end,
-                      morningShiftHours: OverlapOfWorkHoursWithSpecialCase.morningShiftHours,
-                      afternoonShiftHours: OverlapOfWorkHoursWithSpecialCase.afternoonShiftHours,
-                      nightShiftHours: OverlapOfWorkHoursWithSpecialCase.nightShiftHours,
-                      multiple: scr.multiple,
-                    });
+                      repetitionOfSpecialRecord.push({
+                        begin: begin,
+                        end: end,
+                        morningShiftHours: OverlapOfWorkHoursWithSpecialCase.morningShiftHours,
+                        afternoonShiftHours: OverlapOfWorkHoursWithSpecialCase.afternoonShiftHours,
+                        nightShiftHours: OverlapOfWorkHoursWithSpecialCase.nightShiftHours,
+                        multiple: scr.multiple,
+                      });
                     }
                   }
                 }
-
-                console.log(repetitionOfSpecialRecord);
 
                 if (repetitionOfSpecialRecord.length > 1) {
                   for (let i = 0; i < repetitionOfSpecialRecord.length - 1; i++) {
@@ -477,27 +482,17 @@ const ClockRecord = () => {
                       repetitionOfSpecialRecord[i].multiple
                     );
                   }
-                  {/* console.log(baseValueForMorningSpecial);
-                  console.log(baseValueForAfternoonSpecial);
-                  console.log(baseValueForNightSpecial); */}
 
                   overlapOfBaseValueForMorningSpecial.push(baseValueForMorningSpecial);
                   overlapOfBaseValueForAfternoonSpecial.push(baseValueForAfternoonSpecial);
                   overlapOfBaseValueForNightSpecial.push(baseValueForNightSpecial);
                 }
 
-                console.log(overlapOfBaseValueForMorningSpecial)
-                console.log(overlapOfBaseValueForAfternoonSpecial)
-                console.log(overlapOfBaseValueForNightSpecial)
-
                 function calculateBaseValue(baseWage, overlapArray, multiple) {
                   let totalOverlap = overlapArray.reduce((acc, val) => acc + val, 0);
                   return (baseWage + totalOverlap) * (multiple - 1);
                 }
 
-                {
-                  /* console.log(repetitionOfSpecialRecord); */
-                }
                 for (let i = 0; i < repetitionOfSpecialRecord.length; i++) {
                   if (repetitionOfSpecialRecord.length === 1) {
                     morningBonus +=
@@ -512,11 +507,6 @@ const ClockRecord = () => {
                       afternoonBonus +=
                         repetitionOfSpecialRecord[i].afternoonShiftHours * overlapOfBaseValueForAfternoonSpecial[0];
                       nightBonus += repetitionOfSpecialRecord[i].nightShiftHours * overlapOfBaseValueForNightSpecial[0];
-                      {
-                        /* console.log(
-                      repetitionOfSpecialRecord[i].morningShiftHours * overlapOfBaseValueForMorningSpecial[0]
-                    ); */
-                      }
                     } else if (i === 1) {
                       if (
                         repetitionOfSpecialRecord[i].morningShiftHours -
@@ -529,15 +519,6 @@ const ClockRecord = () => {
                             overlapOfBaseValueForMorningSpecial[0] +
                           repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours *
                             overlapOfBaseValueForMorningSpecial[1];
-                        {
-                          /* console.log(
-                        (repetitionOfSpecialRecord[i].morningShiftHours -
-                          repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours) *
-                          overlapOfBaseValueForMorningSpecial[0] +
-                          repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours *
-                            overlapOfBaseValueForMorningSpecial[1]
-                      ); */
-                        }
                       } else {
                         if (repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours === 0) {
                           morningBonus +=
@@ -547,11 +528,6 @@ const ClockRecord = () => {
                           morningBonus +=
                             repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours *
                             overlapOfBaseValueForMorningSpecial[1];
-                          console.log(
-                            repetitionOfSpecialRecord[i].morningShiftHours * overlapOfBaseValueForMorningSpecial[0] +
-                              repetitionOfSpecialRecord[i].repetitionOfMorningShiftHours *
-                                overlapOfBaseValueForMorningSpecial[1]
-                          );
                         }
                       }
 
@@ -604,31 +580,16 @@ const ClockRecord = () => {
                   }
                 }
 
-              console.log('basicMorningWage', basicMorningWage);
-              console.log('morningBonus', morningBonus);
-              console.log('basicAfternoonWage', basicAfternoonWage);
-              console.log('afternoonBonus', afternoonBonus);
-              console.log('basicNightWage', basicNightWage);
-              console.log('nightBonus', nightBonus);
+                let totalWage = morningWage + afternoonWage + nightWage;
 
-                
-                let totalWage =
-                  basicWage.morningShiftHours * v.morning_wage +
-                  basicWage.afternoonShiftHours * v.afternoon_wage +
-                  basicWage.nightShiftHours * v.night_wage;
                 if (repetitionOfSpecialRecord.length > 0) {
-                  totalWage =
-                    basicMorningWage + morningBonus + basicAfternoonWage + afternoonBonus + basicNightWage + nightBonus;
+                  totalWage = morningWage + morningBonus + afternoonWage + afternoonBonus + nightWage + nightBonus;
                 }
 
                 // 把需要的資料整合成excel格式
                 if (recordToExcelFormat.length > 0) {
                   recordToExcelFormat.map((array, i) => {
-                    console.log(array[0]);
                     const findResultIndex = array.findIndex((item) => item.individual_id === v.individual_id);
-                    {
-                      /* console.log(findResultIndex); */
-                    }
                     if (findResultIndex !== -1) {
                       recordToExcelFormat[findResultIndex].push({
                         individual_id: v.individual_id,
@@ -667,9 +628,6 @@ const ClockRecord = () => {
                   ]);
                 }
 
-                {
-                  /* console.log(record); */
-                }
                 return (
                   <tr key={i} className="h-10 hover:bg-emerald-50">
                     <td className="">{v.individual_name}</td>
