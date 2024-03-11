@@ -8,9 +8,9 @@ import Home from './page/home/Home';
 
 function App() {
     return (
-        <BrowserRouter initialEntries={['/login']} initialIndex={0} basename="">
+        <BrowserRouter initialEntries={['/']} initialIndex={0} basename="">
             <Routes>
-                <Route path="/login" element={<Login />}></Route>
+                <Route path="/" element={<Login />}></Route>
                 <Route path="/*" element={<Home />}></Route>
             </Routes>
             <ToastContainer />
