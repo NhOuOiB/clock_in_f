@@ -9,7 +9,7 @@ const UserPermission = () => {
     useEffect(() => {
       (async () => {
         if (!localStorage.getItem('permission')) {
-            navigate('/login');
+            navigate('/');
           }
             try {
                 let result = await axios.get(`${API_URL}/auth`, {
@@ -25,7 +25,7 @@ const UserPermission = () => {
                     draggable: true,
                     theme: 'dark',
                 });
-                if (err.response.status == 401) navigate('/login');
+                if (err.response.status == 401) navigate('/');
             }
         })();
     }, []);
