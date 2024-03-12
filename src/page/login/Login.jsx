@@ -6,9 +6,9 @@ import { toast } from 'react-toastify';
 
 const Login = () => {
     const [login, setLogin] = useState({
-        individual_id: 'test',
-        account: 'mike',
-        password: '1234',
+        individual_id: '',
+        account: '',
+        password: '',
     });
     const navigate = useNavigate();
 
