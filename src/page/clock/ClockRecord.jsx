@@ -37,7 +37,6 @@ const ClockRecord = () => {
       } else {
         data = await axios.get(`${API_URL}/getClockRecord`, { params: searchCondition });
       }
-      console.log(data);
       setRecord(data.data);
     } catch (error) {
       console.error('資料庫錯誤', error);
@@ -81,11 +80,9 @@ const ClockRecord = () => {
       let individual_fee = 0;
       array.forEach((v) => {
         individual_fee += v.wage;
-        console.log(v);
       });
 
       let sortedByDate = array.sort((a, b) => new Date(a.date) - new Date(b.date));
-      console.log(sortedByDate);
 
       // 在每個陣列的最後添加一個新的物件
       return [
@@ -121,10 +118,7 @@ const ClockRecord = () => {
       let employeeWage = [];
       for (let j = 0; j < recordToExcelFormat[i].length; j++) {
         let currentEmployee = recordToExcelFormat[i][j];
-        console.log(currentEmployee.employee_name, 'currentEmployee.employee_name');
         let matchingEmployee = employeeWage.find((e) => {
-          console.log(e.date, 'e.employee_name');
-          console.log(e.date == currentEmployee.employee_name, 'e.employee_name == currentEmployee.employee_name');
           return e.date === currentEmployee.employee_name;
         });
 
@@ -140,19 +134,15 @@ const ClockRecord = () => {
           });
         }
       }
-      console.log('employeeWage', employeeWage);
-      console.log('modifiedRecord[i]', modifiedRecord[i]);
       modifiedRecord[i] = modifiedRecord[i].concat(employeeWage);
     }
 
     modifiedRecord.map((file) => {
-      console.log('file', file);
       let removeIndividual = file.map(({ individual_id, ...rest }) => rest);
       const merge = [];
 
       for (let i = 0; i < file.length - 1; i++) {
         const currentDate = file[i].date;
-        console.log(currentDate);
         if (currentDate === '總和') {
           break;
         }
@@ -160,20 +150,17 @@ const ClockRecord = () => {
           merge.push({ s: { r: i + 1, c: 0 }, e: { r: i + 1, c: 0 } });
         } else {
           const lastDate = file[i - 1].date;
-          console.log(lastDate);
 
           if (lastDate != currentDate) {
             // 如果還沒有追蹤過這個 date，則初始化起始行數
             merge.push({ s: { r: i + 1, c: 0 }, e: { r: i + 1, c: 0 } });
           } else {
             // 如果已經追蹤過這個 date，則更新結束行數
-            console.log(merge[merge.length - 1]);
             merge[merge.length - 1].e.r = i + 1;
           }
         }
       }
 
-      console.log(merge, 'merge');
       const header = ['date', 'time', 'employee_name', 'wage'];
       const headerDisplay = { date: '日期', time: '時間', employee_name: '簽到人', wage: '金額' };
       const correctHeader = [headerDisplay, ...removeIndividual];
@@ -203,7 +190,7 @@ const ClockRecord = () => {
   }, [searchCondition]);
 
   return (
-    <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center">
+    <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center mt-20 sm:mt-0">
       <div className="w-full 2xl:w-3/4 flex flex-col">
         {permission == 1 ? (
           <div className="flex flex-col justify-center items-start md:gap-6 md:mb-16">

@@ -16,7 +16,6 @@ const SpecialCaseRecord = () => {
   async function fetchSpecialData() {
     try {
       let data = await axios.get(`${API_URL}/getSpecialRecord`);
-      console.log(data.data);
       setSpecial(data.data);
     } catch (error) {
       console.error('資料庫錯誤', error);
@@ -26,7 +25,6 @@ const SpecialCaseRecord = () => {
   useEffect(() => {
     fetchSpecialData()
   }, []);
-  console.log(special);
   return (
     <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center">
       <div className="2xl:w-1/2 xl:w-1/2 lg:w-2/3 md:w-4/5 sm:w-12/12 flex flex-col items-end gap-2">

@@ -57,7 +57,6 @@ const AddSpecialCaseRecord = () => {
     } else {
       result = await axios.post(`${API_URL}/addSpecialRecord`, input);
     }
-    console.log(result);
     if (result.status == 200) {
       toast.success(result.data.message, {
         position: 'top-center',
@@ -81,17 +80,20 @@ const AddSpecialCaseRecord = () => {
       });
     }
   }
+
   function handleClear() {
     setInput({ special_case_id: '1', individual_id: '', multiple: '', begin: '', end: '' });
+  }
+
+  function handleBack() {
+    navigate('/specialCaseRecord');
   }
 
   useEffect(() => {
     (async () => {
       if (id) {
         let data = await axios.get(`${API_URL}/getSpecialRecordById/${id}`);
-        console.log(data.data);
         data.data.map((v, i) => {
-          console.log(v.begin.trim());
           setInput({
             special_case_id: v.special_case_id,
             individual_id: v.individual_id,
@@ -105,7 +107,6 @@ const AddSpecialCaseRecord = () => {
       setSpecial(specail_case.data)
     })();
   }, []);
-  console.log(input);
   return (
     <div className="w-full h-[calc(100vh-48px)] flex justify-center items-center">
       <div className="w-full mx-2 2xl:w-1/3 xl:w-1/2 sm:w-2/3 h-3/4 rounded-3xl border px-5 py-14 flex flex-col justify-center gap-20">
@@ -168,6 +169,9 @@ const AddSpecialCaseRecord = () => {
           </div>
           <div className="bg-red-500 py-2 px-4 rounded cursor-pointer" onClick={handleClear}>
             清除
+          </div>
+          <div className="bg-slate-300 py-2 px-4 rounded cursor-pointer" onClick={handleBack}>
+            返回
           </div>
         </div>
       </div>

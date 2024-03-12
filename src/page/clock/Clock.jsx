@@ -42,7 +42,6 @@ const Clock = () => {
       lat: position.lat,
       lng: position.lng,
     });
-    console.log(res);
     if (res.data.status) {
       toast.success(res.data.message, {
         position: 'top-center',
