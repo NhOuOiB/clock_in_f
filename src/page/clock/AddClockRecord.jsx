@@ -7,10 +7,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import moment from 'moment';
 
 const AddClockRecord = () => {
-  // auth();
+  auth();
   const { id } = useParams();
-    const navigate = useNavigate();
-    
+  const navigate = useNavigate();
+
   const [input, setInput] = useState({
     in_time: '',
     out_time: '',
@@ -19,7 +19,7 @@ const AddClockRecord = () => {
     setInput({ ...input, [e.target.id]: e.target.value });
   }
   async function handleSubmit() {
-    if (input.in_time == ''  ) {
+    if (input.in_time == '') {
       toast.error('請至少填寫上班時間', {
         position: 'top-center',
         autoClose: 5000,
@@ -41,7 +41,6 @@ const AddClockRecord = () => {
         ...input,
       });
     }
-    console.log(result);
     if (result.data.status) {
       toast.success(result.data.message, {
         position: 'top-center',
@@ -65,16 +64,19 @@ const AddClockRecord = () => {
       });
     }
   }
-    
+
   function handleClear() {
     setInput({ in_time: '', out_time: '' });
+  }
+
+  function handleBack() {
+    navigate('/clockRecord');
   }
 
   useEffect(() => {
     (async () => {
       if (id) {
-          let data = await axios.get(`${API_URL}/getClockRecordById/${id}`);
-          console.log(data.data);
+        let data = await axios.get(`${API_URL}/getClockRecordById/${id}`);
         data.data.map((v, i) => {
           setInput({
             in_time: moment(v.in_time).format('YYYY-MM-DDTHH:mm'),
@@ -84,7 +86,6 @@ const AddClockRecord = () => {
       }
     })();
   }, []);
-  console.log(input);
   return (
     <div className="w-full h-[calc(100vh-48px)] flex justify-center items-center">
       <div className="w-full mx-2 xl:w-1/3 sm:w-2/3 h-3/4 rounded-3xl border px-5 py-14 flex flex-col justify-center gap-20">
@@ -114,6 +115,9 @@ const AddClockRecord = () => {
           </div>
           <div className="bg-red-500 py-2 px-4 rounded cursor-pointer" onClick={handleClear}>
             清除
+          </div>
+          <div className="bg-slate-300 py-2 px-4 rounded cursor-pointer" onClick={handleBack}>
+            返回
           </div>
         </div>
       </div>

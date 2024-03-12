@@ -6,7 +6,7 @@ import { API_URL } from '../../utils/config';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const AddIndividual = () => {
-  // auth();
+  auth();
   const { individual_id } = useParams();
   const navigate = useNavigate();
 
@@ -23,8 +23,6 @@ const AddIndividual = () => {
   const [settlement, setSettlement] = useState([]);
   const [individual, setIndividual] = useState([]);
   function handleChange(e) {
-    console.log(e.target.id);
-    console.log(e.target.value);
     setInput({ ...input, [e.target.id]: e.target.value });
   }
   async function handleSubmit() {
@@ -79,7 +77,7 @@ const AddIndividual = () => {
   }
   function handleClear() {
     if (individual_id) {
-      setInput((prev)=>{
+      setInput((prev) => {
         return {
           individual_id: prev.individual_id,
           individual_name: '',
@@ -91,7 +89,6 @@ const AddIndividual = () => {
         };
       });
     } else {
-      
       setInput({
         individual_id: '',
         individual_name: '',
@@ -102,6 +99,10 @@ const AddIndividual = () => {
         night_wage: '',
       });
     }
+  }
+
+  function handleBack() {
+    navigate('/individual');
   }
 
   useEffect(() => {
@@ -130,7 +131,6 @@ const AddIndividual = () => {
       setSettlement(settlement_data.data);
     })();
   }, []);
-  console.log(input);
   return (
     <div className="w-full h-[calc(100vh-48px)] flex justify-center items-center">
       <div className="w-full mx-2 2xl:w-1/3 xl:w-1/2 sm:w-2/3 h-3/4 rounded-3xl border px-14 py-8 md:px-24 lg:px-28 flex flex-col justify-center gap-4">
@@ -247,6 +247,9 @@ const AddIndividual = () => {
           </div>
           <div className="bg-red-500 py-2 px-4 rounded cursor-pointer" onClick={handleClear}>
             清除
+          </div>
+          <div className="bg-slate-300 py-2 px-4 rounded cursor-pointer" onClick={handleBack}>
+            返回
           </div>
         </div>
       </div>

@@ -3,14 +3,16 @@ import auth from '../../auth/auth';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { API_URL } from '../../utils/config';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 const AddEmployee = () => {
-  // auth();
+  auth();
   const { employee_id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [input, setInput] = useState({
+    id: '',
     account: '',
     password: '',
     name: '',
@@ -37,8 +39,7 @@ const AddEmployee = () => {
     } else {
       result = await axios.post(`${API_URL}/addEmployee`, input);
     }
-    console.log(result);
-    if (result.status == 200) {
+    if (result.data.status) {
       toast.success(result.data.message, {
         position: 'top-center',
         autoClose: 5000,
@@ -62,7 +63,11 @@ const AddEmployee = () => {
     }
   }
   function handleClear() {
-    setInput({ account: '', password: '', name: '' });
+    setInput({ id:'', account: '', password: '', name: '' });
+  }
+
+  function handleBack() {
+    navigate('/employee');
   }
 
   useEffect(() => {
@@ -70,12 +75,11 @@ const AddEmployee = () => {
       if (employee_id) {
         let data = await axios.get(`${API_URL}/getEmployeeById/${employee_id}`);
         data.data.map((v, i) => {
-          setInput({ account: v.account.trim(), password: v.password.trim(), name: v.name.trim() });
+          setInput({ id: v.id, account: v.account.trim(), password: v.password.trim(), name: v.name.trim() });
         });
       }
     })();
   }, []);
-  console.log(input);
   return (
     <div className="w-full h-[calc(100vh-48px)] flex justify-center items-center">
       <div className="w-full mx-2 xl:w-1/3 sm:w-2/3 h-3/4 rounded-3xl border px-5 py-14 flex flex-col justify-center gap-20">
@@ -115,6 +119,9 @@ const AddEmployee = () => {
           </div>
           <div className="bg-red-500 py-2 px-4 rounded cursor-pointer" onClick={handleClear}>
             清除
+          </div>
+          <div className="bg-slate-300 py-2 px-4 rounded cursor-pointer" onClick={handleBack}>
+            返回
           </div>
         </div>
       </div>
