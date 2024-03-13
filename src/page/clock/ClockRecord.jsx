@@ -1,5 +1,4 @@
 import axios from 'axios';
-import auth from '../../auth/auth';
 import { useState, useEffect } from 'react';
 import { API_URL } from '../../utils/config';
 import moment from 'moment/moment';
@@ -8,7 +7,6 @@ import * as XLSX from 'xlsx';
 import { Link } from 'react-router-dom';
 
 const ClockRecord = () => {
-  auth();
   const [record, setRecord] = useState([]);
   const [settlement, setSettlement] = useState([]);
   const [specialCaseRecord, setSpecialCaseRecord] = useState([]);

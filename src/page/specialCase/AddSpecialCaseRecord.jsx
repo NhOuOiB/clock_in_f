@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import auth from '../../auth/auth';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { API_URL } from '../../utils/config';
@@ -7,7 +6,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import moment from 'moment';
 
 const AddSpecialCaseRecord = () => {
-  // auth();
   const { id } = useParams();
   const navigate = useNavigate();
 

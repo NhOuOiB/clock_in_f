@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
-import auth from '../../auth/auth';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { API_URL } from '../../utils/config';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const AddIndividual = () => {
-  auth();
   const { individual_id } = useParams();
   const navigate = useNavigate();
 

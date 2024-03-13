@@ -1,11 +1,9 @@
 import React from 'react';
 import axios from 'axios';
 import { API_URL } from '../../utils/config';
-import auth from '../../auth/auth';
 import { toast } from 'react-toastify';
 
 const Clock = () => {
-  auth();
   async function getCurrentPosition() {
     return new Promise((resolve, reject) => {
       if (navigator.geolocation) {

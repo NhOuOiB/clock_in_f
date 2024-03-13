@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
-import auth from '../../auth/auth';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { API_URL } from '../../utils/config';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 const AddEmployee = () => {
-  auth();
   const { employee_id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
