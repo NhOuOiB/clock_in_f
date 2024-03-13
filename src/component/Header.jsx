@@ -40,24 +40,12 @@ const Header = () => {
   const permission = localStorage.getItem('permission');
 
   async function signOut() {
-    try {
-      localStorage.setItem('permission', '');
-      localStorage.setItem('userId', '');
-      localStorage.setItem('individualId', '');
-  
-      navigate('/');
-      
-    } catch (err) {
-      toast.error('成功登出', {
-        position: 'top-center',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        theme: 'dark',
-      });
-    }
+    localStorage.setItem('permission', '');
+    localStorage.setItem('userId', '');
+    localStorage.setItem('individualId', '');
+    localStorage.setItem('last_time', '');
+    
+    navigate('/');
   }
   return (
     <div className="top-0 left-0 w-full h-12 bg-white border flex justify-between">

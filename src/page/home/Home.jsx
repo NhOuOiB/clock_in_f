@@ -2,18 +2,33 @@ import Clock from '../clock/Clock';
 import Header from '../../component/Header';
 import ClockRecord from '../clock/ClockRecord';
 import AddClockRecord from '../clock/AddClockRecord';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import AddEmployee from '../employee/AddEmployee';
-import auth from '../../auth/auth';
 import Employee from '../employee/Employee';
 import IndividualCase from '../individual/IndividualCase';
 import AddIndividual from '../individual/AddIndividual';
 import SpecialCaseRecord from '../specialCase/SpecialCaseRecord';
 import AddSpecialCaseRecord from '../specialCase/AddSpecialCaseRecord';
+import moment from 'moment';
+import { useEffect } from 'react';
 
 const Home = () => {
-  auth();
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      const currentTime = moment.now();
+      const lastTime = localStorage.getItem('last_time');
+      console.log(currentTime - lastTime);
+
+      if (currentTime - lastTime > 5000) {
+        navigate('');
+      }
+    }, 1000);
+
+    // 在組件卸載時清除定時器
+    return () => clearInterval(intervalId);
+  }, []);
   return (
     <>
       <Header />
