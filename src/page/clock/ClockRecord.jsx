@@ -192,14 +192,14 @@ const ClockRecord = () => {
   }, [searchCondition]);
 
   return (
-    <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center mt-20 sm:mt-0">
+    <div className="w-full flex flex-col justify-center items-center mt-10">
       <div className="w-full 2xl:w-3/4 flex flex-col">
         {permission == 1 ? (
-          <div className="flex flex-col justify-center items-start md:gap-6 md:mb-16">
+          <div className="flex flex-col justify-center items-start md:gap-6 md:mb-16 gap-4">
             <div className="w-full flex justify-between items-start">
-              <div className="flex flex-col justify-center items-start md:gap-2">
+              <div className="flex flex-col justify-center items-start md:gap-2 gap-2">
                 <div>篩選時間</div>
-                <div>
+                <div className='sm:block flex flex-col gap-4'>
                   <input
                     type="datetime-local"
                     className="bg-white border border-black"
@@ -207,7 +207,7 @@ const ClockRecord = () => {
                     value={searchCondition.begin}
                     onChange={(e) => handleChange(e)}
                   />
-                  <span> ~ </span>
+                  <span className='hidden sm:inline'> ~ </span>
                   <input
                     type="datetime-local"
                     className="bg-white border border-black"
@@ -221,8 +221,8 @@ const ClockRecord = () => {
                 Excel匯出
               </div>
             </div>
-            <div className="flex items-center md:gap-6">
-              <div className="flex flex-col items-start">
+            <div className="grid sm:grid-cols-2 md:gap-6 gap-2">
+              <div className="flex flex-col items-start gap-2">
                 <div>篩選結算型態</div>
                 <div className="flex gap-3">
                   {settlement.map((v, i) => {
@@ -242,7 +242,7 @@ const ClockRecord = () => {
                   })}
                 </div>
               </div>
-              <div className="min-h-full flex flex-col items-start justify-between">
+              <div className="min-h-full flex flex-col justify-between items-start gap-2">
                 <div>個案代碼</div>
                 <div>
                   <input className='bg-white border border-[#444]' name='individual_id' type="text" onChange={(e)=>handleChange(e)}/>
