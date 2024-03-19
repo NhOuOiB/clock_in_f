@@ -14,6 +14,7 @@ const ClockRecord = () => {
     begin: '',
     end: '',
     settlement_id: '',
+    individual_id: ''
   });
   let recordToExcelFormat = [];
   const permission = localStorage.getItem('permission');
@@ -116,6 +117,9 @@ const ClockRecord = () => {
       let employeeWage = [];
       for (let j = 0; j < recordToExcelFormat[i].length; j++) {
         let currentEmployee = recordToExcelFormat[i][j];
+        if (currentEmployee.time.includes('NaN')) {
+          continue;
+        }
         let matchingEmployee = employeeWage.find((e) => {
           return e.date === currentEmployee.employee_name;
         });
@@ -217,24 +221,32 @@ const ClockRecord = () => {
                 Excel匯出
               </div>
             </div>
-            <div className="flex flex-col justify-center items-start md:gap-2">
-              <div>篩選結算型態</div>
-              <div className="flex gap-3">
-                {settlement.map((v, i) => {
-                  return (
-                    <div
-                      className={`border border-black py-2 px-4 rounded transition ${
-                        searchCondition.settlement_id == v.settlement_id && ' bg-black text-white'
-                      }`}
-                      data-name="settlement_id"
-                      key={i}
-                      data-value={v.settlement_id}
-                      onClick={(e) => handleChange(e)}
-                    >
-                      {v.settlement_name}
-                    </div>
-                  );
-                })}
+            <div className="flex items-center md:gap-6">
+              <div className="flex flex-col items-start">
+                <div>篩選結算型態</div>
+                <div className="flex gap-3">
+                  {settlement.map((v, i) => {
+                    return (
+                      <div
+                        className={`border border-black py-2 px-4 rounded transition ${
+                          searchCondition.settlement_id == v.settlement_id && ' bg-black text-white'
+                        }`}
+                        data-name="settlement_id"
+                        key={i}
+                        data-value={v.settlement_id}
+                        onClick={(e) => handleChange(e)}
+                      >
+                        {v.settlement_name}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="min-h-full flex flex-col items-start justify-between">
+                <div>個案代碼</div>
+                <div>
+                  <input className='bg-white border border-[#444]' name='individual_id' type="text" onChange={(e)=>handleChange(e)}/>
+                </div>
               </div>
             </div>
           </div>
@@ -265,8 +277,8 @@ const ClockRecord = () => {
             <tbody>
               {record.map((v, i) => {
                 class ShiftHourCalculator {
-                  constructor(workStart, workEnd) {
-                    this.workStart = workStart;
+                  constructor(workStart, workEnd, workStartBefore30, workEndBefore30) {
+                    workStart = this.workStart = workStart;
                     this.workEnd = workEnd;
                     this.morningShiftHours = 0;
                     this.afternoonShiftHours = 0;
@@ -323,6 +335,23 @@ const ClockRecord = () => {
                         this.nightShiftHours = Math.min(this.workEnd, 8) - Math.max(this.workStart, 0);
                       }
                     }
+
+                    if (workStart < 8) {
+                      this.nightShiftHours += workStartBefore30;
+                    } else if (workStart >= 8 && workStart <= 16) {
+                      this.morningShiftHours += workStartBefore30;
+                    } else {
+                      this.afternoonShiftHours += workStartBefore30;
+                    }
+
+                    if (workEnd < 8) {
+                      this.nightShiftHours += workEndBefore30;
+                    } else if (workEnd >= 8 && workEnd <= 16) {
+                      this.morningShiftHours += workEndBefore30;
+                    } else {
+                      this.afternoonShiftHours += workEndBefore30;
+                    }
+
                     this.totalHour = this.morningShiftHours + this.afternoonShiftHours + this.nightShiftHours;
                   }
                 }
@@ -331,13 +360,20 @@ const ClockRecord = () => {
                   return moment(out_time).format('YYYYMMDDHH') === moment(v.in_time).format('YYYYMMDDHH');
                 });
                 let workStart = moment(v.in_time).hour();
-                if (moment(v.in_time).minutes() >= 50) {
-                  
+                let workStartBefore30 = 0;
+                if (moment(v.in_time).minutes() > 30) {
                   workStart = moment(v.in_time).add(1, 'hours').hour();
+                } else if (moment(v.in_time).minutes() > 0) {
+                  workStart = moment(v.in_time).add(1, 'hours').hour();
+                  workStartBefore30 = 0.5;
                 }
                 let workEnd = moment(v.out_time).hour();
+                let workEndBefore30 = 0;
+                if (moment(v.out_time).minutes() >= 30) {
+                  workEndBefore30 = 0.5;
+                }
 
-                const totalHour = new ShiftHourCalculator(workStart, workEnd);
+                const totalHour = new ShiftHourCalculator(workStart, workEnd, workStartBefore30, workEndBefore30);
                 totalHour.calculate();
 
                 let supplement = 0;
@@ -359,7 +395,7 @@ const ClockRecord = () => {
                 let compensation = moment(v.out_time).add(supplement, 'hours');
                 workEnd = compensation.hour();
 
-                const basicWage = new ShiftHourCalculator(workStart, workEnd);
+                const basicWage = new ShiftHourCalculator(workStart, workEnd, workStartBefore30, workEndBefore30);
                 basicWage.calculate();
 
                 let basicMorningWage;
@@ -395,7 +431,12 @@ const ClockRecord = () => {
                     let begin = moment.max(moment(scr.begin), moment(v.in_time));
                     let end = moment.min(moment(scr.end), compensation);
 
-                    let OverlapOfWorkHoursWithSpecialCase = new ShiftHourCalculator(begin.hour(), end.hour());
+                    let OverlapOfWorkHoursWithSpecialCase = new ShiftHourCalculator(
+                      begin.hour(),
+                      end.hour(),
+                      workStartBefore30,
+                      workEndBefore30
+                    );
                     OverlapOfWorkHoursWithSpecialCase.calculate();
                     if (scr.individual_id == '' || scr.individual_id == v.individual_id) {
                       repetitionOfSpecialRecord.push({
@@ -571,46 +612,34 @@ const ClockRecord = () => {
                   totalWage = morningWage + morningBonus + afternoonWage + afternoonBonus + nightWage + nightBonus;
                 }
 
+                function excelForm(v) {
+                  return {
+                    individual_id: v.individual_id,
+                    date: moment(v.in_time).format('MM/DD'),
+                    time:
+                      `${moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()}00` +
+                      '-' +
+                      `${
+                        moment(v.out_time).hour() > 9 ? moment(v.out_time).hour() : '0' + moment(v.out_time).hour()
+                      }00`,
+                    employee_name: v.name.trim(),
+                    wage: totalWage,
+                  };
+                }
                 // 把需要的資料整合成excel格式
-                if (recordToExcelFormat.length > 0) {
-                  recordToExcelFormat.map((array, i) => {
-                    const findResultIndex = array.findIndex((item) => item.individual_id === v.individual_id);
-                    if (findResultIndex !== -1) {
-                      recordToExcelFormat[findResultIndex].push({
-                        individual_id: v.individual_id,
-                        date: moment(v.in_time).format('MM/DD'),
-                        time: `${
-                          moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()
-                        }00-${moment(v.out_time).hour()}00`,
-                        employee_name: v.name.trim(),
-                        wage: totalWage,
-                      });
-                    } else {
-                      recordToExcelFormat.push([
-                        {
-                          individual_id: v.individual_id,
-                          date: moment(v.in_time).format('MM/DD'),
-                          time: `${
-                            moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()
-                          }00-${moment(v.out_time).hour()}00`,
-                          employee_name: v.name.trim(),
-                          wage: totalWage,
-                        },
-                      ]);
-                    }
-                  });
-                } else {
-                  recordToExcelFormat.push([
-                    {
-                      individual_id: v.individual_id,
-                      date: moment(v.in_time).format('MM/DD'),
-                      time: `${
-                        moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()
-                      }00-${moment(v.out_time).hour()}00`,
-                      employee_name: v.name.trim(),
-                      wage: totalWage,
-                    },
-                  ]);
+                if (v.in_time != null && v.out_time != null) {
+                  if (recordToExcelFormat.length > 0) {
+                    recordToExcelFormat.map((array, i) => {
+                      const findResultIndex = array.findIndex((item) => item.individual_id === v.individual_id);
+                      if (findResultIndex !== -1) {
+                        recordToExcelFormat[findResultIndex].push(excelForm(v));
+                      } else {
+                        recordToExcelFormat.push([excelForm(v)]);
+                      }
+                    });
+                  } else {
+                    recordToExcelFormat.push([excelForm(v)]);
+                  }
                 }
 
                 return (
@@ -620,7 +649,9 @@ const ClockRecord = () => {
                     <td>{v.in_lat_lng}</td>
                     <td>{v.out_lat_lng}</td>
                     <td className="w-fit">{moment(v.in_time).format('YYYY年MM月DD日 HH點mm分')}</td>
-                    <td className="w-fit">{moment(v.out_time).format('YYYY年MM月DD日 HH點mm分')}</td>
+                    <td className="w-fit">{`${
+                      v.out_time !== null ? moment(v.out_time).format('YYYY年MM月DD日 HH點mm分') : ''
+                    }`}</td>
                     <td>{totalWage}</td>
                     <td>
                       <Link
