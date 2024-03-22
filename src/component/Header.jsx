@@ -54,7 +54,7 @@ const Header = () => {
           return (
             permission == v.permission && (
               <div
-                className={`w-[4.5rem] sm:w-20 md:w-24 h-full font-bold relative hover:text-cyan-700 hover:cursor-pointer hover:bg-slate-50 ${
+                className={`w-[4.5rem] sm:w-20 md:w-24 h-full font-bold relative hover:text-cyan-700 hover:cursor-pointer hover:bg-slate-50 transition duration-300 ${
                   i == 0 ? 'border-x' : 'border-e'
                 }`}
                 key={i}
@@ -68,8 +68,10 @@ const Header = () => {
         })}
       </div>
       <div className="flex items-center">
-        <div className="w-[4.5rem] sm:w-20 md:w-24 h-full font-bold relative hover:text-cyan-700 hover:cursor-pointer bg-slate-100 hover:bg-slate-200">
-          <div className="w-full h-full flex justify-center items-center font-bold" onClick={signOut}>登出</div>
+        <div className="w-[4.5rem] sm:w-20 md:w-24 h-full font-bold relative hover:text-cyan-700 hover:cursor-pointer bg-slate-100 hover:bg-slate-200 transition duration-300">
+          <div className="w-full h-full flex justify-center items-center font-bold" onClick={signOut}>
+            登出
+          </div>
         </div>
       </div>
     </div>
