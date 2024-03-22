@@ -40,3 +40,15 @@
 .read-the-docs {
   color: #888;
 }
+
+.grid-0fr{
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: 400ms grid-template-rows ease;
+}
+
+.grid-1fr{
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: 400ms grid-template-rows ease;
+}
