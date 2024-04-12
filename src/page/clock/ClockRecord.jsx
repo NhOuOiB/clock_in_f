@@ -15,8 +15,9 @@ const ClockRecord = () => {
   const [searchCondition, setSearchCondition] = useState({
     begin: '',
     end: '',
-    settlement_id: '',
+    settlement_id: '1',
     individual_id: '',
+    settlement_type: '1',
   });
   const [device, setDevice] = useState(document.documentElement.clientWidth > 500 ? 'PC' : 'Mobile');
   const [recordDetail, setRecordDetail] = useState({ status: false, id: '' });
@@ -31,7 +32,6 @@ const ClockRecord = () => {
       setSearchCondition((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     }
   }
-
   async function fetchRecordData(searchCondition) {
     let data;
     try {
@@ -79,6 +79,7 @@ const ClockRecord = () => {
   const fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
   const fileExtention = '.xlsx';
   const exportToExcel = async () => {
+    // console.log('recordToExcelFormat', recordToExcelFormat);
     const modifiedRecord = recordToExcelFormat.map((array) => {
       let individual_fee = 0;
       array.forEach((v) => {
@@ -86,7 +87,7 @@ const ClockRecord = () => {
       });
 
       let sortedByDate = array.sort((a, b) => new Date(a.date) - new Date(b.date));
-
+      // console.log('array', array);
       // 在每個陣列的最後添加一個新的物件
       return [
         ...array,
@@ -142,7 +143,7 @@ const ClockRecord = () => {
       }
       modifiedRecord[i] = modifiedRecord[i].concat(employeeWage);
     }
-
+    // console.log('modifiedRecord', modifiedRecord)
     modifiedRecord.map((file) => {
       let removeIndividual = file.map(({ individual_id, ...rest }) => rest);
       const merge = [];
@@ -322,7 +323,9 @@ const ClockRecord = () => {
       }
     }
     let compensation = moment(v.out_time).add(supplement, 'hours');
-    workEnd = compensation.hour();
+    console.log('v.id', v.id);
+    console.log(compensation.hour());
+    // workEnd = compensation.hour();
 
     const basicWage = new ShiftHourCalculator(workStart, workEnd, workStartBefore30, workEndBefore30);
     basicWage.calculate();
@@ -523,31 +526,42 @@ const ClockRecord = () => {
       totalWage = morningWage + morningBonus + afternoonWage + afternoonBonus + nightWage + nightBonus;
     }
 
-    function excelForm(v) {
-      return {
-        individual_id: v.individual_id,
-        date: moment(v.in_time).format('MM/DD'),
-        time:
-          `${moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()}00` +
-          '-' +
-          `${moment(v.out_time).hour() > 9 ? moment(v.out_time).hour() : '0' + moment(v.out_time).hour()}00`,
-        employee_name: v.name.trim(),
-        wage: totalWage,
-      };
-    }
+    // function excelForm(v) {
+    //   return {
+    //     individual_id: v.individual_id,
+    //     date: moment(v.in_time).format('MM/DD'),
+    //     time:
+    //       `${moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()}00` +
+    //       '-' +
+    //       `${moment(v.out_time).hour() > 9 ? moment(v.out_time).hour() : '0' + moment(v.out_time).hour()}00`,
+    //     employee_name: v.name.trim(),
+    //     wage: totalWage,
+    //   };
+    // }
+    let excelForm = {
+      individual_id: v.individual_id,
+      date: moment(v.in_time).format('MM/DD'),
+      time:
+        `${moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()}00` +
+        '-' +
+        `${moment(v.out_time).hour() > 9 ? moment(v.out_time).hour() : '0' + moment(v.out_time).hour()}00`,
+      employee_name: v.name.trim(),
+      wage: totalWage,
+    };
+
     // 把需要的資料整合成excel格式
     if (v.in_time != null && v.out_time != null) {
       if (recordToExcelFormat.length > 0) {
         recordToExcelFormat.map((array, i) => {
           const findResultIndex = array.findIndex((item) => item.individual_id === v.individual_id);
           if (findResultIndex !== -1) {
-            recordToExcelFormat[findResultIndex].push(excelForm(v));
+            recordToExcelFormat[findResultIndex].push(excelForm);
           } else {
-            recordToExcelFormat.push([excelForm(v)]);
+            recordToExcelFormat.push([excelForm]);
           }
         });
       } else {
-        recordToExcelFormat.push([excelForm(v)]);
+        recordToExcelFormat.push([excelForm]);
       }
     }
 
@@ -564,22 +578,44 @@ const ClockRecord = () => {
             <div className="w-full flex justify-between items-start">
               <div className="flex flex-col justify-center items-start md:gap-2 gap-2">
                 <div>篩選時間</div>
-                <div className="sm:block flex flex-col gap-4">
-                  <input
-                    type="datetime-local"
-                    className="bg-white border border-black"
-                    name="begin"
-                    value={searchCondition.begin}
-                    onChange={(e) => handleChange(e)}
-                  />
-                  <span className="hidden sm:inline"> ~ </span>
-                  <input
-                    type="datetime-local"
-                    className="bg-white border border-black"
-                    name="end"
-                    value={searchCondition.end}
-                    onChange={(e) => handleChange(e)}
-                  />
+                <div className=" flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div>
+                    <input
+                      type="datetime-local"
+                      className="bg-white border border-black"
+                      name="begin"
+                      value={searchCondition.begin}
+                      onChange={(e) => handleChange(e)}
+                    />
+                    <span className="hidden sm:inline"> ~ </span>
+                    <input
+                      type="datetime-local"
+                      className="bg-white border border-black"
+                      name="end"
+                      value={searchCondition.end}
+                      onChange={(e) => handleChange(e)}
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    {[
+                      { id: 1, name: '上班' },
+                      { id: 2, name: '下班' },
+                    ].map((v, i) => {
+                      return (
+                        <div
+                          className={`border border-black py-2 px-4 rounded transition ${
+                            searchCondition.settlement_type == v.id && ' bg-black text-white'
+                          }`}
+                          key={i}
+                          data-name="settlement_type"
+                          data-value={v.id}
+                          onClick={(e) => handleChange(e)}
+                        >
+                          {v.name}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               <div className="px-2 py-2 bg-sky-600 text-white cursor-pointer" onClick={exportToExcel}>
@@ -596,8 +632,8 @@ const ClockRecord = () => {
                         className={`border border-black py-2 px-4 rounded transition ${
                           searchCondition.settlement_id == v.settlement_id && ' bg-black text-white'
                         }`}
-                        data-name="settlement_id"
                         key={i}
+                        data-name="settlement_id"
                         data-value={v.settlement_id}
                         onClick={(e) => handleChange(e)}
                       >
