@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import { Link } from 'react-router-dom';
 import { IconContext } from 'react-icons';
 import { FaMapMarkerAlt } from 'react-icons/fa';
+import { Pagination } from 'antd';
 
 const ClockRecord = () => {
   const [record, setRecord] = useState([]);
@@ -18,12 +19,14 @@ const ClockRecord = () => {
     settlement_id: '1',
     individual_id: '',
     settlement_type: '1',
+    page: '1',
+    pageSize: '10',
   });
   const [device, setDevice] = useState(document.documentElement.clientWidth > 500 ? 'PC' : 'Mobile');
   const [recordDetail, setRecordDetail] = useState({ status: false, id: '' });
   let recordToExcelFormat = [];
   const permission = localStorage.getItem('permission');
-  const employee_id = localStorage.getItem('userId');
+  const individual_id = localStorage.getItem('individualId');
 
   function handleChange(e) {
     if (e.target.tagName.toLowerCase() == 'div') {
@@ -32,20 +35,25 @@ const ClockRecord = () => {
       setSearchCondition((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     }
   }
+
   async function fetchRecordData(searchCondition) {
     let data;
     try {
       if (permission == 2) {
-        data = await axios.get(`${API_URL}/getClockRecordByEmployee`, { params: { employee_id: employee_id } });
+        data = await axios.get(`${API_URL}/getClockRecordByEmployee`, {
+          params: { individual_id: individual_id, page: searchCondition.page, pageSize: searchCondition.pageSize },
+        });
       } else {
-        data = await axios.get(`${API_URL}/getClockRecord`, { params: searchCondition });
+        data = await axios.get(`${API_URL}/getClockRecord`, {
+          params: searchCondition,
+        });
       }
+
       setRecord(data.data);
     } catch (error) {
       console.error('資料庫錯誤', error);
     }
   }
-
   async function fetchSettlementData() {
     try {
       let data = await axios.get(`${API_URL}/getSettlement`);
@@ -79,18 +87,62 @@ const ClockRecord = () => {
   const fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
   const fileExtention = '.xlsx';
   const exportToExcel = async () => {
-    // console.log('recordToExcelFormat', recordToExcelFormat);
-    const modifiedRecord = recordToExcelFormat.map((array) => {
-      let individual_fee = 0;
-      array.forEach((v) => {
-        individual_fee += v.wage;
+    const dataByIndividualId = {};
+    record.totalData.map((v) => {
+      let wage = computeData(v).totalWage;
+
+      let excelForm = {
+        individual_id: v.individual_id,
+        individual_name: v.individual_name,
+        fullTime: moment(v.in_time),
+        date: moment(v.in_time).format('MM/DD'),
+        time:
+          `${moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()}00` +
+          '-' +
+          `${moment(v.out_time).hour() > 9 ? moment(v.out_time).hour() : '0' + moment(v.out_time).hour()}00`,
+        employee_name: v.name.trim(),
+        wage: wage,
+      };
+
+      const individualId = v.individual_name + '_' + v.individual_id;
+      if (dataByIndividualId[individualId]) {
+        dataByIndividualId[individualId].push(excelForm);
+      } else {
+        // 否則，創建一個以 individualId 為鍵的新陣列，並將該資料加入到新陣列中
+        dataByIndividualId[individualId] = [excelForm];
+      }
+    });
+
+    const modifiedRecord = Object.keys(dataByIndividualId).map((fileName) => {
+      let sortedByDate = dataByIndividualId[fileName].sort((a, b) => new Date(a.fullTime) - new Date(b.fullTime));
+      let individual_fee = sortedByDate.reduce((accumulator, { wage }) => accumulator + parseInt(wage), 0);
+
+      let employeeWage = {};
+
+      sortedByDate.forEach((record) => {
+        if (record.time.includes('NaN')) return;
+
+        const employeeName = record.employee_name;
+        const wage = Number(record.wage);
+
+        if (employeeWage.hasOwnProperty(employeeName)) {
+          employeeWage[employeeName].time += wage;
+          employeeWage[employeeName].wage += wage;
+        } else {
+          // 否則，創建一個新的項目
+          employeeWage[employeeName] = {
+            date: employeeName,
+            time: wage,
+            employee_name: '',
+            wage: wage,
+          };
+        }
       });
 
-      let sortedByDate = array.sort((a, b) => new Date(a.date) - new Date(b.date));
-      // console.log('array', array);
-      // 在每個陣列的最後添加一個新的物件
+      const aggregatedRecords = Object.values(employeeWage);
+
       return [
-        ...array,
+        ...sortedByDate,
         {
           date: '總和',
           time: '',
@@ -115,37 +167,12 @@ const ClockRecord = () => {
           employee_name: '費用',
           wage: '總計',
         },
+        ...aggregatedRecords,
       ];
     });
 
-    for (let i = 0; i < recordToExcelFormat.length; i++) {
-      let employeeWage = [];
-      for (let j = 0; j < recordToExcelFormat[i].length; j++) {
-        let currentEmployee = recordToExcelFormat[i][j];
-        if (currentEmployee.time.includes('NaN')) {
-          continue;
-        }
-        let matchingEmployee = employeeWage.find((e) => {
-          return e.date === currentEmployee.employee_name;
-        });
-
-        if (matchingEmployee) {
-          matchingEmployee.time += Number(currentEmployee.wage);
-          matchingEmployee.wage += Number(currentEmployee.wage);
-        } else {
-          employeeWage.push({
-            date: currentEmployee.employee_name,
-            time: currentEmployee.wage,
-            employee_name: '',
-            wage: currentEmployee.wage,
-          });
-        }
-      }
-      modifiedRecord[i] = modifiedRecord[i].concat(employeeWage);
-    }
-    // console.log('modifiedRecord', modifiedRecord)
     modifiedRecord.map((file) => {
-      let removeIndividual = file.map(({ individual_id, ...rest }) => rest);
+      let removeIndividual = file.map(({ individual_id, individual_name, ...rest }) => rest);
       const merge = [];
 
       for (let i = 0; i < file.length - 1; i++) {
@@ -178,11 +205,7 @@ const ClockRecord = () => {
 
       const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const data = new Blob([excelBuffer], { type: fileType });
-      const fileName = `${
-        searchCondition.begin != '' && searchCondition.end != ''
-          ? searchCondition.begin + '-' + searchCondition.end + file[0].individual_id + fileExtention
-          : file[0].individual_id + fileExtention
-      }`;
+      const fileName = `${file[0].individual_name + '_' + file[0].individual_id + fileExtention}`;
       FileSaver.saveAs(data, fileName);
     });
   };
@@ -208,7 +231,7 @@ const ClockRecord = () => {
   function computeData(v) {
     class ShiftHourCalculator {
       constructor(workStart, workEnd, workStartBefore30, workEndBefore30) {
-        workStart = this.workStart = workStart;
+        this.workStart = workStart;
         this.workEnd = workEnd;
         this.morningShiftHours = 0;
         this.afternoonShiftHours = 0;
@@ -286,7 +309,7 @@ const ClockRecord = () => {
       }
     }
 
-    const findPrevious = record.find(({ out_time }) => {
+    const findPrevious = record.data.find(({ out_time }) => {
       return moment(out_time).format('YYYYMMDDHH') === moment(v.in_time).format('YYYYMMDDHH');
     });
     let workStart = moment(v.in_time).hour();
@@ -323,8 +346,6 @@ const ClockRecord = () => {
       }
     }
     let compensation = moment(v.out_time).add(supplement, 'hours');
-    console.log('v.id', v.id);
-    console.log(compensation.hour());
     // workEnd = compensation.hour();
 
     const basicWage = new ShiftHourCalculator(workStart, workEnd, workStartBefore30, workEndBefore30);
@@ -538,32 +559,32 @@ const ClockRecord = () => {
     //     wage: totalWage,
     //   };
     // }
-    let excelForm = {
-      individual_id: v.individual_id,
-      date: moment(v.in_time).format('MM/DD'),
-      time:
-        `${moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()}00` +
-        '-' +
-        `${moment(v.out_time).hour() > 9 ? moment(v.out_time).hour() : '0' + moment(v.out_time).hour()}00`,
-      employee_name: v.name.trim(),
-      wage: totalWage,
-    };
+    // let excelForm = {
+    //   individual_id: v.individual_id,
+    //   date: moment(v.in_time).format('MM/DD'),
+    //   time:
+    //     `${moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()}00` +
+    //     '-' +
+    //     `${moment(v.out_time).hour() > 9 ? moment(v.out_time).hour() : '0' + moment(v.out_time).hour()}00`,
+    //   employee_name: v.name.trim(),
+    //   wage: totalWage,
+    // };
 
-    // 把需要的資料整合成excel格式
-    if (v.in_time != null && v.out_time != null) {
-      if (recordToExcelFormat.length > 0) {
-        recordToExcelFormat.map((array, i) => {
-          const findResultIndex = array.findIndex((item) => item.individual_id === v.individual_id);
-          if (findResultIndex !== -1) {
-            recordToExcelFormat[findResultIndex].push(excelForm);
-          } else {
-            recordToExcelFormat.push([excelForm]);
-          }
-        });
-      } else {
-        recordToExcelFormat.push([excelForm]);
-      }
-    }
+    // // 把需要的資料整合成excel格式
+    // if (v.in_time != null && v.out_time != null) {
+    //   if (recordToExcelFormat.length > 0) {
+    //     recordToExcelFormat.map((array, i) => {
+    //       const findResultIndex = array.findIndex((item) => item.individual_id === v.individual_id);
+    //       if (findResultIndex !== -1) {
+    //         recordToExcelFormat[findResultIndex].push(excelForm);
+    //       } else {
+    //         recordToExcelFormat.push([excelForm]);
+    //       }
+    //     });
+    //   } else {
+    //     recordToExcelFormat.push([excelForm]);
+    //   }
+    // }
 
     return {
       totalWage: totalWage,
@@ -571,8 +592,8 @@ const ClockRecord = () => {
   }
 
   return (
-    <div className="w-full flex flex-col justify-center items-center relative">
-      <div className="w-full 2xl:w-3/4 flex flex-col mt-10">
+    <div className={`w-full flex flex-col justify-center items-center ${device === 'PC' ? 'h-[calc(100%-48px)]' : 'mt-4'}`}>
+      <div className="w-full 2xl:w-3/4 flex flex-col">
         {permission == 1 ? (
           <div className="flex flex-col justify-center items-start md:gap-6 mb-4 md:mb-12 gap-4">
             <div className="w-full flex justify-between items-start">
@@ -659,15 +680,18 @@ const ClockRecord = () => {
         ) : (
           ''
         )}
+
         <div className="flex flex-col gap-4">
-          <div className="flex justify-end">
-            <Link
-              to={'/addClockRecord'}
-              className="h-full flex justify-center items-center font-bold bg-green-600 text-white border w-fit px-3 py-1 cursor-pointer"
-            >
-              新增
-            </Link>
-          </div>
+          {permission == 1 && (
+            <div className="flex justify-end">
+              <Link
+                to={'/addClockRecord'}
+                className="h-full flex justify-center items-center font-bold bg-green-600 text-white border w-fit px-3 py-1 cursor-pointer"
+              >
+                新增
+              </Link>
+            </div>
+          )}
           {device === 'PC' ? (
             <table className="w-full overflow-auto table-auto border border-gray-400">
               <thead className="bg-gray-200 h-10">
@@ -684,7 +708,7 @@ const ClockRecord = () => {
                 </tr>
               </thead>
               <tbody>
-                {record.map((v, i) => {
+                {record?.data?.map((v, i) => {
                   let totalWage = computeData(v).totalWage;
                   return (
                     <tr key={i} className="h-10 hover:bg-emerald-50">
@@ -696,23 +720,27 @@ const ClockRecord = () => {
                       <td className="w-fit">{`${
                         v.out_time !== null ? moment(v.out_time).format('YYYY年MM月DD日 HH點mm分') : ''
                       }`}</td>
-                      <td>{totalWage}</td>
-                      <td>
-                        <Link
-                          to={`/addClockRecord/${v.id}`}
-                          className="h-full flex justify-center items-center font-bold bg-sky-700 text-white border px-3 py-1 w-max cursor-pointer"
-                        >
-                          編輯
-                        </Link>
-                      </td>
-                      <td>
-                        <div
-                          className="bg-red-600 text-white border px-3 py-1 w-max cursor-pointer"
-                          onClick={() => handleDelete(v.id)}
-                        >
-                          刪除
-                        </div>
-                      </td>
+                      {permission == 1 && <td>{totalWage}</td>}
+                      {permission == 1 && (
+                        <td>
+                          <Link
+                            to={`/addClockRecord/${v.id}`}
+                            className="h-full flex justify-center items-center font-bold bg-sky-700 text-white border px-3 py-1 w-max cursor-pointer"
+                          >
+                            編輯
+                          </Link>
+                        </td>
+                      )}
+                      {permission == 1 && (
+                        <td>
+                          <div
+                            className="bg-red-600 text-white border px-3 py-1 w-max cursor-pointer"
+                            onClick={() => handleDelete(v.id)}
+                          >
+                            刪除
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -720,7 +748,7 @@ const ClockRecord = () => {
             </table>
           ) : (
             <div>
-              {record.map((v, i) => {
+              {record?.data?.map((v, i) => {
                 function handleClick() {
                   setRecordDetail({ status: true, id: v.id });
                 }
@@ -740,8 +768,12 @@ const ClockRecord = () => {
                           <div>{moment(v.in_time).format('HH:mm')}</div>
                         </div>
                         <div className={`${recordDetail.id === v.id && 'hidden'}`}>
-                          <div>{moment(v.out_time).format('YY/MM/DD')}</div>
-                          <div>{moment(v.out_time).format('HH:mm')}</div>
+                          <div className={`${v.out_time === null && 'invisible'}`}>
+                            {moment(v.out_time).format('YY/MM/DD')}
+                          </div>
+                          <div className={`${v.out_time === null && 'invisible'}`}>
+                            {moment(v.out_time).format('HH:mm')}
+                          </div>
                         </div>
                       </>
                     </div>
@@ -767,8 +799,12 @@ const ClockRecord = () => {
                           </div>
                           <div className="flex items-center gap-4">
                             <div>
-                              <div>{moment(v.out_time).format('YY/MM/DD')}</div>
-                              <div>{moment(v.out_time).format('HH:mm')}</div>
+                              <div className={`${v.out_time === null && 'invisible'}`}>
+                                {moment(v.out_time).format('YY/MM/DD')}
+                              </div>
+                              <div className={`${v.out_time === null && 'invisible'}`}>
+                                {moment(v.out_time).format('HH:mm')}
+                              </div>
                             </div>
                             <IconContext.Provider value={{ size: '2rem', className: 'cursor-pointer' }}>
                               <Link to={`https://www.google.com/maps/search/?api=1&query=${v.out_lat_lng}`}>
@@ -808,6 +844,13 @@ const ClockRecord = () => {
             </div>
           )}
         </div>
+        <Pagination
+          defaultCurrent={1}
+          total={record?.totalData?.length}
+          onChange={(page, pageSize) => {
+            setSearchCondition((prev) => ({ ...prev, ['page']: page, ['pageSize']: pageSize }));
+          }}
+        />
       </div>
     </div>
   );
