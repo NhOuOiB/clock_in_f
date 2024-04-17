@@ -592,7 +592,7 @@ const ClockRecord = () => {
   }
 
   return (
-    <div className={`w-full flex flex-col justify-center items-center ${device === 'PC' ? 'h-[calc(100%-48px)]' : 'mt-4'}`}>
+    <div className={`w-full flex flex-col justify-center items-center ${device === 'PC' ? 'xl:h-[calc(100%-48px)]' : 'mt-4'}`}>
       <div className="w-full 2xl:w-3/4 flex flex-col">
         {permission == 1 ? (
           <div className="flex flex-col justify-center items-start md:gap-6 mb-4 md:mb-12 gap-4">
