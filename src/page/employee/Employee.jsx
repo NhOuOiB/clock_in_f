@@ -8,7 +8,8 @@ const Employee = () => {
   const [employee, setEmployee] = useState([]);
   const [searchCondition, setSearchCondition] = useState({
     employee_name: '',
-    page: 1
+    page: 1,
+    pageSize: 10,
   });
 
   const fetchEmployeeData = async () => {
@@ -38,12 +39,11 @@ const Employee = () => {
       setSearchCondition((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     }
   }
+
   useEffect(() => {
     // 初始加載員工數據
     fetchEmployeeData();
   }, [searchCondition]);
-
-  console.log(searchCondition.page);
 
   return (
     <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center">
@@ -79,8 +79,8 @@ const Employee = () => {
               </tr>
             </thead>
             <tbody>
-              {employee.length > 0 &&
-                employee.map((v, i) => {
+              {employee?.data?.length > 0 &&
+                employee.data.map((v, i) => {
                   return (
                     <tr key={i} className="h-10 hover:bg-emerald-50">
                       <td>{v.name}</td>
@@ -105,7 +105,13 @@ const Employee = () => {
                 })}
             </tbody>
           </table>
-          <Pagination defaultCurrent={1} total={100} hideOnSinglePage={true} />
+          <Pagination
+            defaultCurrent={1}
+            total={employee.count}
+            onChange={(page, pageSize) => {
+              setSearchCondition((prev) => ({ ...prev, ['page']: page, ['pageSize']: pageSize }));
+            }}
+          />
         </div>
       </div>
     </div>
