@@ -18,7 +18,18 @@ const AddClockRecord = () => {
   }
   async function handleSubmit() {
     if (input.in_time == '') {
-      toast.error('請至少填寫上班時間', {
+      toast.error('請填寫上班時間', {
+        position: 'top-center',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme: 'dark',
+      });
+      return false;
+    } else if (input.out_time == '' || input.out_time == 'Invalid date') {
+      toast.error('請填寫下班時間', {
         position: 'top-center',
         autoClose: 5000,
         hideProgressBar: false,
