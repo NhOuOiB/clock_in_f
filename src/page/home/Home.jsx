@@ -19,9 +19,8 @@ const Home = () => {
     const intervalId = setInterval(() => {
       const currentTime = moment.now();
       const lastTime = localStorage.getItem('last_time');
-      console.log(currentTime - lastTime);
 
-      if (currentTime - lastTime > 5000) {
+      if (currentTime - lastTime > 30 * 60 * 1000) {
         navigate('');
       }
     }, 1000);
