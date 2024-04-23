@@ -89,19 +89,15 @@ const ClockRecord = () => {
   const exportToExcel = async () => {
     const dataByIndividualId = {};
     record.totalData.map((v) => {
-      let wage = computeData(v).totalWage;
-
+      let { totalWage, workStart, workEnd } = computeData(v);
       let excelForm = {
         individual_id: v.individual_id,
         individual_name: v.individual_name,
         fullTime: moment(v.in_time),
         date: moment(v.in_time).format('MM/DD'),
-        time:
-          `${moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()}00` +
-          '-' +
-          `${moment(v.out_time).hour() > 9 ? moment(v.out_time).hour() : '0' + moment(v.out_time).hour()}00`,
+        time: workStart.replace(':', '') + '-' + workEnd.replace(':', ''),
         employee_name: v.name.trim(),
-        wage: wage,
+        wage: Math.ceil(totalWage),
       };
 
       const individualId = v.individual_name + '_' + v.individual_id;
@@ -125,7 +121,7 @@ const ClockRecord = () => {
         const employeeName = record.employee_name;
         const wage = Number(record.wage);
 
-        if (employeeWage.hasOwnProperty(employeeName)) {
+        if (Object.prototype.hasOwnProperty.call(employeeWage, employeeName)) {
           employeeWage[employeeName].time += wage;
           employeeWage[employeeName].wage += wage;
         } else {
@@ -314,16 +310,25 @@ const ClockRecord = () => {
     });
     let workStart = moment(v.in_time).hour();
     let workStartBefore30 = 0;
+    let workStartExcel = moment(v.in_time).format('HH:mm');
     if (moment(v.in_time).minutes() > 30) {
       workStart = moment(v.in_time).add(1, 'hours').hour();
+      workStartExcel = moment(v.in_time).add(1, 'hours').format('HH:00');
     } else if (moment(v.in_time).minutes() > 0) {
       workStart = moment(v.in_time).add(1, 'hours').hour();
       workStartBefore30 = 0.5;
+      workStartExcel = moment(v.in_time)
+        .add(30 - parseInt(moment(v.in_time).minutes()), 'm')
+        .format('HH:mm');
     }
     let workEnd = moment(v.out_time).hour();
     let workEndBefore30 = 0;
+    let workEndExcel = moment(v.out_time).format('HH:mm');
     if (moment(v.out_time).minutes() >= 30) {
       workEndBefore30 = 0.5;
+      workEndExcel = moment(v.out_time).format('HH:30');
+    } else {
+      workEndExcel = moment(v.out_time).format('HH:00');
     }
 
     const totalHour = new ShiftHourCalculator(workStart, workEnd, workStartBefore30, workEndBefore30);
@@ -541,58 +546,25 @@ const ClockRecord = () => {
       }
     }
 
-    let totalWage = morningWage + afternoonWage + nightWage;
+    let totalWage = Math.ceil(morningWage + afternoonWage + nightWage);
 
     if (repetitionOfSpecialRecord.length > 0) {
       totalWage = morningWage + morningBonus + afternoonWage + afternoonBonus + nightWage + nightBonus;
     }
 
-    // function excelForm(v) {
-    //   return {
-    //     individual_id: v.individual_id,
-    //     date: moment(v.in_time).format('MM/DD'),
-    //     time:
-    //       `${moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()}00` +
-    //       '-' +
-    //       `${moment(v.out_time).hour() > 9 ? moment(v.out_time).hour() : '0' + moment(v.out_time).hour()}00`,
-    //     employee_name: v.name.trim(),
-    //     wage: totalWage,
-    //   };
-    // }
-    // let excelForm = {
-    //   individual_id: v.individual_id,
-    //   date: moment(v.in_time).format('MM/DD'),
-    //   time:
-    //     `${moment(v.in_time).hour() > 9 ? moment(v.in_time).hour() : '0' + moment(v.in_time).hour()}00` +
-    //     '-' +
-    //     `${moment(v.out_time).hour() > 9 ? moment(v.out_time).hour() : '0' + moment(v.out_time).hour()}00`,
-    //   employee_name: v.name.trim(),
-    //   wage: totalWage,
-    // };
-
-    // // 把需要的資料整合成excel格式
-    // if (v.in_time != null && v.out_time != null) {
-    //   if (recordToExcelFormat.length > 0) {
-    //     recordToExcelFormat.map((array, i) => {
-    //       const findResultIndex = array.findIndex((item) => item.individual_id === v.individual_id);
-    //       if (findResultIndex !== -1) {
-    //         recordToExcelFormat[findResultIndex].push(excelForm);
-    //       } else {
-    //         recordToExcelFormat.push([excelForm]);
-    //       }
-    //     });
-    //   } else {
-    //     recordToExcelFormat.push([excelForm]);
-    //   }
-    // }
-
     return {
       totalWage: totalWage,
+      workStart: workStartExcel,
+      workEnd: workEndExcel,
     };
   }
 
   return (
-    <div className={`w-full flex flex-col justify-center items-center ${device === 'PC' ? 'xl:h-[calc(100%-48px)]' : 'mt-4'}`}>
+    <div
+      className={`w-full flex flex-col justify-center items-center ${
+        device === 'PC' ? 'xl:h-[calc(100%-48px)]' : 'mt-4'
+      }`}
+    >
       <div className="w-full 2xl:w-3/4 flex flex-col">
         {permission == 1 ? (
           <div className="flex flex-col justify-center items-start md:gap-6 mb-4 md:mb-12 gap-4">
@@ -664,7 +636,7 @@ const ClockRecord = () => {
                   })}
                 </div>
               </div>
-              <div className="min-h-full flex flex-col justify-between items-start gap-2">
+              <div className="flex flex-col justify-between items-start gap-2">
                 <div>個案代碼</div>
                 <div>
                   <input
@@ -819,23 +791,27 @@ const ClockRecord = () => {
                             </IconContext.Provider>
                           </div>
                         </div>
-                        <div className="mx-2 py-3 flex justify-center">
-                          <p className=" bg-amber-100 p-2 rounded-xl">{`薪資 : $${totalWage}`}</p>
-                        </div>
-                        <div className="py-3 flex justify-center gap-12">
-                          <Link
-                            to={`/addClockRecord/${v.id}`}
-                            className="h-full flex justify-center items-center font-bold bg-stone-700 text-white border px-3 py-1 w-max cursor-pointer"
-                          >
-                            編輯
-                          </Link>
-                          <div
-                            className=" bg-stone-700 text-white border px-3 py-1 w-max cursor-pointer"
-                            onClick={() => handleDelete(v.id)}
-                          >
-                            刪除
+                        {permission == 1 && (
+                          <div className="mx-2 py-3 flex justify-center">
+                            <p className=" bg-amber-100 p-2 rounded-xl">{`薪資 : $${totalWage}`}</p>
                           </div>
-                        </div>
+                        )}
+                        {permission == 1 && (
+                          <div className="py-3 flex justify-center gap-12">
+                            <Link
+                              to={`/addClockRecord/${v.id}`}
+                              className="h-full flex justify-center items-center font-bold bg-stone-700 text-white border px-3 py-1 w-max cursor-pointer"
+                            >
+                              編輯
+                            </Link>
+                            <div
+                              className=" bg-stone-700 text-white border px-3 py-1 w-max cursor-pointer"
+                              onClick={() => handleDelete(v.id)}
+                            >
+                              刪除
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
