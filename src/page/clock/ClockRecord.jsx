@@ -661,7 +661,7 @@ const ClockRecord = () => {
                 </div>
               </div>
               <div className="flex flex-col justify-between items-start gap-2">
-                <div>特戶名稱</div>
+                <div>特護名稱</div>
                 <div>
                   <input
                     className="bg-white border border-[#444]"
