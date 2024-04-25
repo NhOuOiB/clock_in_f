@@ -39,8 +39,8 @@ const IndividualCase = () => {
     fetchIndividualData();
   }, [searchCondition]);
   return (
-    <div className="w-full h-[calc(100%-48px)] flex flex-col justify-center items-center">
-      <div className="2xl:w-1/3 xl:w-1/3 lg:w-1/2 md:w-1/2 sm:w-2/3 flex flex-col gap-2">
+    <div className="w-full min-h-[calc(100%-48px)] flex flex-col justify-center items-center py-20">
+      <div className="2xl:w-1/3 xl:w-1/3 lg:w-1/2 md:w-1/2 sm:w-2/3 flex flex-col gap-4">
         <div className="flex flex-col items-start">
           <div>個案名稱</div>
           <div>
