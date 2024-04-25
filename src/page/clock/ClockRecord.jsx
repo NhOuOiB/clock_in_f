@@ -18,6 +18,8 @@ const ClockRecord = () => {
     end: '',
     settlement_id: '1',
     individual_id: '',
+    individual_name: '',
+    employee_name: '',
     settlement_type: '1',
     page: '1',
     pageSize: '10',
@@ -562,12 +564,12 @@ const ClockRecord = () => {
   return (
     <div
       className={`w-full flex flex-col justify-center items-center ${
-        device === 'PC' ? 'xl:h-[calc(100%-48px)]' : 'mt-4'
+        device === 'PC' ? 'min-h-[calc(100%-48px)] py-10' : ' mt-4'
       }`}
     >
-      <div className="w-full 2xl:w-3/4 flex flex-col">
+      <div className="w-full 2xl:w-3/4 flex flex-col gap-4">
         {permission == 1 ? (
-          <div className="flex flex-col justify-center items-start md:gap-6 mb-4 md:mb-12 gap-4">
+          <div className="flex flex-col justify-center items-start md:gap-6 mb-4 md:mb-6 gap-4">
             <div className="w-full flex justify-between items-start">
               <div className="flex flex-col justify-center items-start md:gap-2 gap-2">
                 <div>篩選時間</div>
@@ -615,7 +617,7 @@ const ClockRecord = () => {
                 Excel匯出
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 md:gap-6 gap-2">
+            <div className="grid sm:grid-cols-4 md:gap-6 gap-2">
               <div className="flex flex-col items-start gap-2">
                 <div>篩選結算型態</div>
                 <div className="flex gap-3">
@@ -642,6 +644,28 @@ const ClockRecord = () => {
                   <input
                     className="bg-white border border-[#444]"
                     name="individual_id"
+                    type="text"
+                    onChange={(e) => handleChange(e)}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col justify-between items-start gap-2">
+                <div>個案名稱</div>
+                <div>
+                  <input
+                    className="bg-white border border-[#444]"
+                    name="individual_name"
+                    type="text"
+                    onChange={(e) => handleChange(e)}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col justify-between items-start gap-2">
+                <div>特戶名稱</div>
+                <div>
+                  <input
+                    className="bg-white border border-[#444]"
+                    name="employee_name"
                     type="text"
                     onChange={(e) => handleChange(e)}
                   />
@@ -674,7 +698,7 @@ const ClockRecord = () => {
                   <th className="px-2">下班經緯度</th>
                   <th className="px-4">上班時間</th>
                   <th className="px-4">下班時間</th>
-                  <th className="px-4">薪資</th>
+                  {permission == 1 && <th className="px-4">薪資</th>}
                   <th className="px-2"></th>
                   <th className="px-2"></th>
                 </tr>
@@ -692,7 +716,7 @@ const ClockRecord = () => {
                       <td className="w-fit">{`${
                         v.out_time !== null ? moment(v.out_time).format('YYYY年MM月DD日 HH點mm分') : ''
                       }`}</td>
-                      {permission == 1 && <td>{totalWage}</td>}
+                      {permission == 1 && <td>{v.out_time !== null ? totalWage : 0}</td>}
                       {permission == 1 && (
                         <td>
                           <Link
@@ -793,7 +817,7 @@ const ClockRecord = () => {
                         </div>
                         {permission == 1 && (
                           <div className="mx-2 py-3 flex justify-center">
-                            <p className=" bg-amber-100 p-2 rounded-xl">{`薪資 : $${totalWage}`}</p>
+                            <p className=" bg-amber-100 p-2 rounded-xl">{`薪資 : $${v.out_time !== null ? totalWage : 0}`}</p>
                           </div>
                         )}
                         {permission == 1 && (
