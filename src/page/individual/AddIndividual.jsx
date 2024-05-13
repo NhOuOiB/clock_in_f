@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { API_URL } from '../../utils/config';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 const AddIndividual = () => {
   const { individual_id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [input, setInput] = useState({
     individual_id: '',
@@ -60,7 +61,7 @@ const AddIndividual = () => {
         draggable: true,
         theme: 'dark',
       });
-      navigate('/individual');
+      navigate('/individual', { state: { searchCondition: location.state?.searchCondition } });
     } else {
       toast.error(result.data.message, {
         position: 'top-center',
@@ -100,7 +101,7 @@ const AddIndividual = () => {
   }
 
   function handleBack() {
-    navigate('/individual');
+    navigate('/individual', { state: { searchCondition: location.state?.searchCondition } });
   }
 
   useEffect(() => {

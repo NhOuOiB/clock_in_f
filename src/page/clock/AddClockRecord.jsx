@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { API_URL } from '../../utils/config';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import moment from 'moment';
 
 const AddClockRecord = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [input, setInput] = useState({
     in_time: '',
@@ -28,18 +29,7 @@ const AddClockRecord = () => {
         theme: 'dark',
       });
       return false;
-    } else if (input.out_time == '' || input.out_time == 'Invalid date') {
-      toast.error('請填寫下班時間', {
-        position: 'top-center',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        theme: 'dark',
-      });
-      return false;
-    }
+    } 
     let result;
     if (id) {
       result = await axios.put(`${API_URL}/updateClockRecord`, { id: id, ...input });
@@ -60,7 +50,7 @@ const AddClockRecord = () => {
         draggable: true,
         theme: 'dark',
       });
-      navigate('/clockRecord');
+      navigate('/clockRecord', { state: { searchCondition: location.state?.searchCondition } });
     } else {
       toast.error(result.data.message, {
         position: 'top-center',
@@ -79,7 +69,7 @@ const AddClockRecord = () => {
   }
 
   function handleBack() {
-    navigate('/clockRecord');
+    navigate('/clockRecord', { state: { searchCondition: location.state?.searchCondition } });
   }
 
   useEffect(() => {

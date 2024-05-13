@@ -47,7 +47,7 @@ const AddEmployee = () => {
         draggable: true,
         theme: 'dark',
       });
-      navigate('/employee')
+      navigate('/employee', { state: { searchCondition: location.state?.searchCondition } });
     } else {
       toast.error(result.data.message, {
         position: 'top-center',
@@ -65,7 +65,7 @@ const AddEmployee = () => {
   }
 
   function handleBack() {
-    navigate('/employee');
+    navigate('/employee', { state: { searchCondition: location.state?.searchCondition } });
   }
 
   useEffect(() => {
