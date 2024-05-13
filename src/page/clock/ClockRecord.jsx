@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../../utils/config';
 import moment from 'moment/moment';
 import FileSaver from 'file-saver';
@@ -8,33 +9,42 @@ import { Link } from 'react-router-dom';
 import { IconContext } from 'react-icons';
 import { FaMapMarkerAlt } from 'react-icons/fa';
 import { Pagination } from 'antd';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+import { toast } from 'react-toastify';
 
 const ClockRecord = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [record, setRecord] = useState([]);
   const [settlement, setSettlement] = useState([]);
   const [specialCaseRecord, setSpecialCaseRecord] = useState([]);
-  const [searchCondition, setSearchCondition] = useState({
-    begin: '',
-    end: '',
-    settlement_id: '1',
-    individual_id: '',
-    individual_name: '',
-    employee_name: '',
-    settlement_type: '1',
-    page: '1',
-    pageSize: '10',
-  });
+  const [searchCondition, setSearchCondition] = useState(
+    location.state?.searchCondition || {
+      begin: '',
+      end: '',
+      settlement_id: '1',
+      individual_id: '',
+      individual_name: '',
+      employee_name: '',
+      settlement_type: '1',
+      page: '1',
+      pageSize: '10',
+    }
+  );
+
   const [device, setDevice] = useState(document.documentElement.clientWidth > 500 ? 'PC' : 'Mobile');
   const [recordDetail, setRecordDetail] = useState({ status: false, id: '' });
   let recordToExcelFormat = [];
   const permission = localStorage.getItem('permission');
   const individual_id = localStorage.getItem('individualId');
+  const MySwal = withReactContent(Swal);
 
   function handleChange(e) {
     if (e.target.tagName.toLowerCase() == 'div') {
-      setSearchCondition((prev) => ({ ...prev, [e.target.dataset.name]: e.target.dataset.value }));
+      setSearchCondition((prev) => ({ ...prev, [e.target.dataset.name]: e.target.dataset.value, page: 1 }));
     } else {
-      setSearchCondition((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+      setSearchCondition((prev) => ({ ...prev, [e.target.name]: e.target.value, page: 1 }));
     }
   }
 
@@ -74,13 +84,36 @@ const ClockRecord = () => {
     }
   }
 
-  async function handleDelete(id) {
+  async function handleDelete(id, employee_name, individual_name, in_time, out_time) {
     try {
-      // 發送刪除請求
-      await axios.put(`${API_URL}/deleteClockRecord?id=${id}`);
-
-      // 刪除成功後重新獲取最新的打卡紀錄
-      fetchRecordData(searchCondition);
+      Swal.fire({
+        title: `確定要刪除嗎?`,
+        html: `個案名稱 : ${individual_name}<br>特護名稱 : ${employee_name}<br>${moment(in_time).format(
+          'YYYY年MM月DD日 HH點mm分'
+        )}<br>${out_time != null ? moment(out_time).format('YYYY年MM月DD日 HH點mm分') : ''}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: '刪除',
+        cancelButtonText: '取消',
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          // 發送刪除請求
+          let result = await axios.put(`${API_URL}/deleteClockRecord?id=${id}`);
+          toast.success(result.data.message, {
+            position: 'top-center',
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: 'dark',
+          });
+          // 刪除成功後重新獲取最新的打卡紀錄
+          fetchRecordData(searchCondition);
+        }
+      });
     } catch (error) {
       console.error('刪除員工發生錯誤:', error);
     }
@@ -169,42 +202,44 @@ const ClockRecord = () => {
       ];
     });
 
-    modifiedRecord.map((file) => {
-      let removeIndividual = file.map(({ individual_id, individual_name, ...rest }) => rest);
-      const merge = [];
+    modifiedRecord.map((file, i) => {
+      setTimeout(() => {
+        let removeIndividual = file.map(({ individual_id, individual_name, ...rest }) => rest);
+        const merge = [];
 
-      for (let i = 0; i < file.length - 1; i++) {
-        const currentDate = file[i].date;
-        if (currentDate === '總和') {
-          break;
-        }
-        if (i == 0) {
-          merge.push({ s: { r: i + 1, c: 0 }, e: { r: i + 1, c: 0 } });
-        } else {
-          const lastDate = file[i - 1].date;
-
-          if (lastDate != currentDate) {
-            // 如果還沒有追蹤過這個 date，則初始化起始行數
+        for (let i = 0; i < file.length - 1; i++) {
+          const currentDate = file[i].date;
+          if (currentDate === '總和') {
+            break;
+          }
+          if (i == 0) {
             merge.push({ s: { r: i + 1, c: 0 }, e: { r: i + 1, c: 0 } });
           } else {
-            // 如果已經追蹤過這個 date，則更新結束行數
-            merge[merge.length - 1].e.r = i + 1;
+            const lastDate = file[i - 1].date;
+
+            if (lastDate != currentDate) {
+              // 如果還沒有追蹤過這個 date，則初始化起始行數
+              merge.push({ s: { r: i + 1, c: 0 }, e: { r: i + 1, c: 0 } });
+            } else {
+              // 如果已經追蹤過這個 date，則更新結束行數
+              merge[merge.length - 1].e.r = i + 1;
+            }
           }
         }
-      }
 
-      const header = ['date', 'time', 'employee_name', 'wage'];
-      const headerDisplay = { date: '日期', time: '時間', employee_name: '簽到人', wage: '金額' };
-      const correctHeader = [headerDisplay, ...removeIndividual];
-      const ws = XLSX.utils.json_to_sheet(correctHeader, { header: header, skipHeader: true });
-      const wb = { Sheets: { data: ws }, SheetNames: ['data'] };
-      // const merge = [{ s: { r: 1, c: 0 }, e: { r: 3, c: 0 } }];
-      ws['!merges'] = merge;
+        const header = ['date', 'time', 'employee_name', 'wage'];
+        const headerDisplay = { date: '日期', time: '時間', employee_name: '簽到人', wage: '金額' };
+        const correctHeader = [headerDisplay, ...removeIndividual];
+        const ws = XLSX.utils.json_to_sheet(correctHeader, { header: header, skipHeader: true });
+        const wb = { Sheets: { data: ws }, SheetNames: ['data'] };
+        // const merge = [{ s: { r: 1, c: 0 }, e: { r: 3, c: 0 } }];
+        ws['!merges'] = merge;
 
-      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const data = new Blob([excelBuffer], { type: fileType });
-      const fileName = `${file[0].individual_name + '_' + file[0].individual_id + fileExtention}`;
-      FileSaver.saveAs(data, fileName);
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const data = new Blob([excelBuffer], { type: fileType });
+        const fileName = `${file[0].individual_name + '_' + file[0].individual_id + fileExtention}`;
+        FileSaver.saveAs(data, fileName);
+      }, i * 400);
     });
   };
 
@@ -561,6 +596,16 @@ const ClockRecord = () => {
     };
   }
 
+  function handleToAddClockRecord(id) {
+    navigate(`/addClockRecord/${id}`, { state: { searchCondition: searchCondition } });
+  }
+
+  useEffect(() => {
+    // 重新整理清除location.state
+    if (location.state) {
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location, navigate]);
   return (
     <div
       className={`w-full flex flex-col justify-center items-center ${
@@ -645,7 +690,8 @@ const ClockRecord = () => {
                     className="bg-white border border-[#444]"
                     name="individual_id"
                     type="text"
-                    onChange={(e) => handleChange(e)}
+                    value={searchCondition.individual_id}
+                    onInput={(e) => handleChange(e)}
                   />
                 </div>
               </div>
@@ -656,7 +702,8 @@ const ClockRecord = () => {
                     className="bg-white border border-[#444]"
                     name="individual_name"
                     type="text"
-                    onChange={(e) => handleChange(e)}
+                    value={searchCondition.individual_name}
+                    onInput={(e) => handleChange(e)}
                   />
                 </div>
               </div>
@@ -667,7 +714,8 @@ const ClockRecord = () => {
                     className="bg-white border border-[#444]"
                     name="employee_name"
                     type="text"
-                    onChange={(e) => handleChange(e)}
+                    value={searchCondition.employee_name}
+                    onInput={(e) => handleChange(e)}
                   />
                 </div>
               </div>
@@ -719,19 +767,19 @@ const ClockRecord = () => {
                       {permission == 1 && <td>{v.out_time !== null ? totalWage : 0}</td>}
                       {permission == 1 && (
                         <td>
-                          <Link
-                            to={`/addClockRecord/${v.id}`}
+                          <div
+                            onClick={() => handleToAddClockRecord(v.id)}
                             className="h-full flex justify-center items-center font-bold bg-sky-700 text-white border px-3 py-1 w-max cursor-pointer"
                           >
                             編輯
-                          </Link>
+                          </div>
                         </td>
                       )}
                       {permission == 1 && (
                         <td>
                           <div
                             className="bg-red-600 text-white border px-3 py-1 w-max cursor-pointer"
-                            onClick={() => handleDelete(v.id)}
+                            onClick={() => handleDelete(v.id, v.name, v.individual_name, v.in_time, v.out_time)}
                           >
                             刪除
                           </div>
@@ -817,7 +865,9 @@ const ClockRecord = () => {
                         </div>
                         {permission == 1 && (
                           <div className="mx-2 py-3 flex justify-center">
-                            <p className=" bg-amber-100 p-2 rounded-xl">{`薪資 : $${v.out_time !== null ? totalWage : 0}`}</p>
+                            <p className=" bg-amber-100 p-2 rounded-xl">{`薪資 : $${
+                              v.out_time !== null ? totalWage : 0
+                            }`}</p>
                           </div>
                         )}
                         {permission == 1 && (
@@ -830,7 +880,7 @@ const ClockRecord = () => {
                             </Link>
                             <div
                               className=" bg-stone-700 text-white border px-3 py-1 w-max cursor-pointer"
-                              onClick={() => handleDelete(v.id)}
+                              onClick={() => handleDelete(v.id, v.name, v.individual_name, v.in_time, v.out_time)}
                             >
                               刪除
                             </div>
@@ -847,6 +897,7 @@ const ClockRecord = () => {
         <Pagination
           defaultCurrent={1}
           total={record?.totalData?.length}
+          current={searchCondition.page}
           onChange={(page, pageSize) => {
             setSearchCondition((prev) => ({ ...prev, ['page']: page, ['pageSize']: pageSize }));
           }}
