@@ -272,6 +272,7 @@ const ClockRecord = () => {
         this.totalHour = 0;
       }
 
+      
       calculate() {
         // 08:00~16:00 的情况
         if (this.workStart < this.workEnd) {
@@ -322,9 +323,9 @@ const ClockRecord = () => {
           }
         }
 
-        if (workStart < 8) {
+        if (workStart <= 8) {
           this.nightShiftHours += workStartBefore30;
-        } else if (workStart >= 8 && workStart <= 16) {
+        } else if (workStart > 8 && workStart <= 16) {
           this.morningShiftHours += workStartBefore30;
         } else {
           this.afternoonShiftHours += workStartBefore30;
@@ -332,7 +333,7 @@ const ClockRecord = () => {
 
         if (workEnd < 8) {
           this.nightShiftHours += workEndBefore30;
-        } else if (workEnd >= 8 && workEnd <= 16) {
+        } else if (workEnd >= 8 && workEnd < 16) {
           this.morningShiftHours += workEndBefore30;
         } else {
           this.afternoonShiftHours += workEndBefore30;
@@ -393,16 +394,15 @@ const ClockRecord = () => {
     const basicWage = new ShiftHourCalculator(workStart, workEnd, workStartBefore30, workEndBefore30);
     basicWage.calculate();
 
-    let basicMorningWage;
-    let basicAfternoonWage;
-    let basicNightWage;
+    let basicMorningWage = v.morning_wage;
+    let basicAfternoonWage = v.afternoon_wage;
+    let basicNightWage = v.night_wage;
+
+    // 未滿8小時
     if (findPrevious === undefined && totalHour.totalHour < 8) {
-      basicMorningWage = basicAfternoonWage = basicNightWage = Math.min(v.morning_wage, v.afternoon_wage, v.night_wage);
-    } else {
-      basicMorningWage = v.morning_wage;
-      basicAfternoonWage = v.afternoon_wage;
-      basicNightWage = v.night_wage;
+      // basicMorningWage = basicAfternoonWage = basicNightWage = Math.min(v.morning_wage, v.afternoon_wage, v.night_wage);
     }
+
     let morningBonus = 0;
     let afternoonBonus = 0;
     let nightBonus = 0;
