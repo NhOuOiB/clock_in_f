@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '../../utils/config';
 import moment from 'moment/moment';
@@ -40,11 +40,26 @@ const ClockRecord = () => {
   const individual_id = localStorage.getItem('individualId');
   const MySwal = withReactContent(Swal);
 
+  const timeoutRef = useRef(null); // 使用 useRef 來保存 timeout
+
   function handleChange(e) {
-    if (e.target.tagName.toLowerCase() == 'div') {
-      setSearchCondition((prev) => ({ ...prev, [e.target.dataset.name]: e.target.dataset.value, page: 1 }));
+    clearTimeout(timeoutRef.current); // 清除之前的 timeout
+
+    // 設置新的 timeout
+    if (e.target.tagName.toLowerCase() === 'div') {
+      setSearchCondition((prev) => ({
+        ...prev,
+        [e.target.dataset.name]: e.target.dataset.value,
+        page: 1,
+      }));
     } else {
-      setSearchCondition((prev) => ({ ...prev, [e.target.name]: e.target.value, page: 1 }));
+      timeoutRef.current = setTimeout(() => {
+        setSearchCondition((prev) => ({
+          ...prev,
+          [e.target.name]: e.target.value,
+          page: 1,
+        }));
+      }, 600);
     }
   }
 
@@ -272,7 +287,6 @@ const ClockRecord = () => {
         this.totalHour = 0;
       }
 
-      
       calculate() {
         // 08:00~16:00 的情况
         if (this.workStart < this.workEnd) {
@@ -322,8 +336,8 @@ const ClockRecord = () => {
             this.nightShiftHours = Math.min(this.workEnd, 8) - Math.max(this.workStart, 0);
           }
         }
-
-        if (workStart <= 8) {
+        console.log(workStart);
+        if (workStart > 0 && workStart <= 8 ) {
           this.nightShiftHours += workStartBefore30;
         } else if (workStart > 8 && workStart <= 16) {
           this.morningShiftHours += workStartBefore30;
@@ -624,7 +638,7 @@ const ClockRecord = () => {
                       type="datetime-local"
                       className="bg-white border border-black"
                       name="begin"
-                      value={searchCondition.begin}
+                      defaultValue={searchCondition.begin}
                       onChange={(e) => handleChange(e)}
                     />
                     <span className="hidden sm:inline"> ~ </span>
@@ -632,7 +646,7 @@ const ClockRecord = () => {
                       type="datetime-local"
                       className="bg-white border border-black"
                       name="end"
-                      value={searchCondition.end}
+                      defaultValue={searchCondition.end}
                       onChange={(e) => handleChange(e)}
                     />
                   </div>
@@ -690,7 +704,7 @@ const ClockRecord = () => {
                     className="bg-white border border-[#444]"
                     name="individual_id"
                     type="text"
-                    value={searchCondition.individual_id}
+                    defaultValue={searchCondition.individual_id}
                     onInput={(e) => handleChange(e)}
                   />
                 </div>
@@ -702,7 +716,7 @@ const ClockRecord = () => {
                     className="bg-white border border-[#444]"
                     name="individual_name"
                     type="text"
-                    value={searchCondition.individual_name}
+                    defaultValue={searchCondition.individual_name}
                     onInput={(e) => handleChange(e)}
                   />
                 </div>
@@ -714,7 +728,7 @@ const ClockRecord = () => {
                     className="bg-white border border-[#444]"
                     name="employee_name"
                     type="text"
-                    value={searchCondition.employee_name}
+                    defaultValue={searchCondition.employee_name}
                     onInput={(e) => handleChange(e)}
                   />
                 </div>
