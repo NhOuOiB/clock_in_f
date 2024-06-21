@@ -41,6 +41,7 @@ const Header = () => {
   async function signOut() {
     localStorage.setItem('permission', '');
     localStorage.setItem('userId', '');
+    localStorage.setItem('name', '');
     localStorage.setItem('individualId', '');
     localStorage.setItem('last_time', '');
     
