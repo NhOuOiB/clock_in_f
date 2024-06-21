@@ -8,8 +8,8 @@ import moment from 'moment';
 const Login = () => {
   const [login, setLogin] = useState({
     individual_id: '',
-    account: 'admin',
-    password: '1234',
+    account: '',
+    password: '',
   });
   const navigate = useNavigate();
 
@@ -23,6 +23,7 @@ const Login = () => {
       });
       localStorage.setItem('permission', res.data.permission);
       localStorage.setItem('userId', res.data.id);
+      localStorage.setItem('name', res.data.name);
       localStorage.setItem('individualId', res.data.individual_id);
       localStorage.setItem('last_time', moment.now())
       if (res.status == 200) {
