@@ -21,6 +21,12 @@ const Home = () => {
       const lastTime = localStorage.getItem('last_time');
 
       if (currentTime - lastTime > 30 * 60 * 1000) {
+        localStorage.setItem('permission', '');
+        localStorage.setItem('userId', '');
+        localStorage.setItem('name', '');
+        localStorage.setItem('individualId', '');
+        localStorage.setItem('last_time', '');
+
         navigate('');
       }
     }, 1000);
