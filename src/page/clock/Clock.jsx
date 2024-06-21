@@ -39,6 +39,9 @@ const Clock = () => {
     try {
       Swal.fire({
         title: `確定要打卡嗎?`,
+        html: `個案代號 : ${localStorage.getItem('individualId')}<br>特護名稱 : ${localStorage.getItem(
+          'name'
+        )}<br><br><p style="color: gray;font-size: 14px">如上列資訊有誤，請重新登入再試</p>`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -47,6 +50,23 @@ const Clock = () => {
         cancelButtonText: '取消',
       }).then(async (result) => {
         if (result.isConfirmed) {
+          if (
+            !localStorage.getItem('userId') ||
+            localStorage.getItem('userId') === 'undefined' ||
+            !localStorage.getItem('individualId') ||
+            localStorage.getItem('individualId') === 'undefined'
+          ) {
+            toast.error('個案代碼或特護為空，請重新登入', {
+              position: 'top-center',
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              theme: 'dark',
+            });
+            return false;
+          }
           if (buttonStatus) {
             setButtonStatus(false);
             const position = await getCurrentPosition();
@@ -85,6 +105,15 @@ const Clock = () => {
       });
     } catch (error) {
       console.log('打卡失敗', error);
+      toast.error(error, {
+        position: 'top-center',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme: 'dark',
+      });
     }
   }
   return (
