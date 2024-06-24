@@ -68,7 +68,6 @@ const Clock = () => {
             return false;
           }
           if (buttonStatus) {
-            setButtonStatus(false);
             const position = await getCurrentPosition();
 
             let res = await axios.post(`${API_URL}/addClockRecord`, {
@@ -99,7 +98,6 @@ const Clock = () => {
                 theme: 'dark',
               });
             }
-            setButtonStatus(true);
           }
         }
       });
@@ -114,6 +112,7 @@ const Clock = () => {
         draggable: true,
         theme: 'dark',
       });
+    } finally {
       setButtonStatus(true);
     }
   }
