@@ -114,6 +114,7 @@ const Clock = () => {
         draggable: true,
         theme: 'dark',
       });
+      setButtonStatus(true);
     }
   }
   return (
