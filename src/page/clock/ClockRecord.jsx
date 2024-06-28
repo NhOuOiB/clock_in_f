@@ -336,7 +336,7 @@ const ClockRecord = () => {
             this.nightShiftHours = Math.min(this.workEnd, 8) - Math.max(this.workStart, 0);
           }
         }
-        console.log(workStart);
+        
         if (workStart > 0 && workStart <= 8 ) {
           this.nightShiftHours += workStartBefore30;
         } else if (workStart > 8 && workStart <= 16) {
