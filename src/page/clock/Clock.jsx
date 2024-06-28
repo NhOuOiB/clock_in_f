@@ -6,7 +6,6 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 
 const Clock = () => {
-  const [buttonStatus, setButtonStatus] = useState(true);
   const MySwal = withReactContent(Swal);
 
   async function getCurrentPosition() {
@@ -67,37 +66,35 @@ const Clock = () => {
             });
             return false;
           }
-          if (buttonStatus) {
-            const position = await getCurrentPosition();
+          const position = await getCurrentPosition();
 
-            let res = await axios.post(`${API_URL}/addClockRecord`, {
-              id: localStorage.getItem('userId'),
-              individual_id: localStorage.getItem('individualId'),
-              type: type,
-              lat: position.lat,
-              lng: position.lng,
+          let res = await axios.post(`${API_URL}/addClockRecord`, {
+            id: localStorage.getItem('userId'),
+            individual_id: localStorage.getItem('individualId'),
+            type: type,
+            lat: position.lat,
+            lng: position.lng,
+          });
+          if (res.data.status) {
+            toast.success(res.data.message, {
+              position: 'top-center',
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              theme: 'dark',
             });
-            if (res.data.status) {
-              toast.success(res.data.message, {
-                position: 'top-center',
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                theme: 'dark',
-              });
-            } else {
-              toast.error(res.data.message, {
-                position: 'top-center',
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                theme: 'dark',
-              });
-            }
+          } else {
+            toast.error(res.data.message, {
+              position: 'top-center',
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              theme: 'dark',
+            });
           }
         }
       });
@@ -112,8 +109,6 @@ const Clock = () => {
         draggable: true,
         theme: 'dark',
       });
-    } finally {
-      setButtonStatus(true);
     }
   }
   return (
