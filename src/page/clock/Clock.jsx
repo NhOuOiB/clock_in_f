@@ -68,13 +68,23 @@ const Clock = () => {
           }
           const position = await getCurrentPosition();
 
-          let res = await axios.post(`${API_URL}/addClockRecord`, {
-            id: localStorage.getItem('userId'),
-            individual_id: localStorage.getItem('individualId'),
-            type: type,
-            lat: position.lat,
-            lng: position.lng,
-          });
+          let res = await axios.post(
+            `${API_URL}/addClockRecord`,
+            {
+              id: localStorage.getItem('userId'),
+              individual_id: localStorage.getItem('individualId'),
+              type: type,
+              lat: position.lat,
+              lng: position.lng,
+            },
+            {
+              headers: {
+                'Cache-Control': 'no-store',
+                Pragma: 'no-store',
+                Expires: '0',
+              },
+            }
+          );
           if (res.data.status) {
             toast.success(res.data.message, {
               position: 'top-center',
