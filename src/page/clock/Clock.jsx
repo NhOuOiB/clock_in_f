@@ -18,7 +18,24 @@ const Clock = () => {
             resolve({ lat, lng });
           },
           (error) => {
-            reject(error);
+            let error_message;
+            if (error.code === 1) {
+              error_message = '沒有獲取地理位置信息的權限';
+            } else if (error.code === 2) {
+              error_message = '地理位置信息資訊錯誤';
+            } else if (error.code === 3) {
+              error_message = '取得地理資訊超過時限';
+            }
+            toast.error(error_message, {
+              position: 'top-center',
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              theme: 'dark',
+            });
+            resolve();
           }
         );
       } else {
@@ -34,6 +51,7 @@ const Clock = () => {
       }
     });
   }
+
   async function handleClick(type) {
     try {
       Swal.fire({
@@ -67,15 +85,14 @@ const Clock = () => {
             return false;
           }
           const position = await getCurrentPosition();
-
           let res = await axios.post(
             `${API_URL}/addClockRecord`,
             {
               id: localStorage.getItem('userId'),
               individual_id: localStorage.getItem('individualId'),
               type: type,
-              lat: position.lat,
-              lng: position.lng,
+              lat: position?.lat,
+              lng: position?.lng,
             },
             {
               headers: {
@@ -109,7 +126,6 @@ const Clock = () => {
         }
       });
     } catch (error) {
-      console.log('打卡失敗', error);
       toast.error(error, {
         position: 'top-center',
         autoClose: 5000,
