@@ -8,6 +8,31 @@ import withReactContent from 'sweetalert2-react-content';
 const Clock = () => {
   const MySwal = withReactContent(Swal);
 
+  const [buttonStatus, setButtonStatus] = useState(true);
+
+  const userId = localStorage.getItem('userId');
+  const name = localStorage.getItem('name');
+  const individualId = localStorage.getItem('individualId');
+
+  const toastSuccess = {
+    position: 'top-center',
+    autoClose: 5000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    theme: 'dark',
+  };
+  const toastError = {
+    position: 'top-center',
+    autoClose: 5000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    theme: 'dark',
+  };
+
   async function getCurrentPosition() {
     return new Promise((resolve, reject) => {
       if (navigator.geolocation) {
@@ -26,39 +51,21 @@ const Clock = () => {
             } else if (error.code === 3) {
               error_message = '取得地理資訊超過時限';
             }
-            toast.error(error_message, {
-              position: 'top-center',
-              autoClose: 5000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              theme: 'dark',
-            });
+            toast.error(error_message, toastError);
             resolve();
           }
         );
       } else {
-        toast.error('Geolocation is not supported by your browser', {
-          position: 'top-center',
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: 'dark',
-        });
+        toast.error('Geolocation is not supported by your browser', toastError);
       }
     });
   }
 
   async function handleClick(type) {
-    try {
+    if (buttonStatus) {
       Swal.fire({
         title: `確定要打卡嗎?`,
-        html: `個案代號 : ${localStorage.getItem('individualId')}<br>特護名稱 : ${localStorage.getItem(
-          'name'
-        )}<br><br><p style="color: gray;font-size: 14px">如上列資訊有誤，請重新登入再試</p>`,
+        html: `個案代號 : ${individualId}<br>特護名稱 : ${name}<br><br><p style="color: gray;font-size: 14px">如上列資訊有誤，請重新登入再試</p>`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -67,74 +74,45 @@ const Clock = () => {
         cancelButtonText: '取消',
       }).then(async (result) => {
         if (result.isConfirmed) {
-          if (
-            !localStorage.getItem('userId') ||
-            localStorage.getItem('userId') === 'undefined' ||
-            !localStorage.getItem('individualId') ||
-            localStorage.getItem('individualId') === 'undefined'
-          ) {
-            toast.error('個案代碼或特護為空，請重新登入', {
-              position: 'top-center',
-              autoClose: 5000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              theme: 'dark',
-            });
+          if (!userId || userId === 'undefined' || !individualId || individualId === 'undefined') {
+            toast.error('個案代碼或特護為空，請重新登入', toastError);
             return false;
           }
-          const position = await getCurrentPosition();
-          let res = await axios.post(
-            `${API_URL}/addClockRecord`,
-            {
-              id: localStorage.getItem('userId'),
-              individual_id: localStorage.getItem('individualId'),
-              type: type,
-              lat: position?.lat,
-              lng: position?.lng,
-            },
-            {
-              headers: {
-                'Cache-Control': 'no-store',
-                Pragma: 'no-store',
-                Expires: '0',
+          setButtonStatus(false);
+          try {
+            const position = await getCurrentPosition();
+            let res = await axios.post(
+              `${API_URL}/addClockRecord`,
+              {
+                id: userId,
+                individual_id: individualId,
+                type: type,
+                lat: position?.lat,
+                lng: position?.lng,
               },
+              {
+                headers: {
+                  'Cache-Control': 'no-store',
+                  Pragma: 'no-store',
+                  Expires: '0',
+                },
+              }
+            );
+            console.log(res);
+            if (res.data.status) {
+              toast.success(res.data.message, toastSuccess);
+            } else {
+              toast.error(res.data.message, toastError);
             }
-          );
-          if (res.data.status) {
-            toast.success(res.data.message, {
-              position: 'top-center',
-              autoClose: 5000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              theme: 'dark',
-            });
-          } else {
-            toast.error(res.data.message, {
-              position: 'top-center',
-              autoClose: 5000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-              theme: 'dark',
-            });
+          } catch (postError) {
+            toast.error(postError.message || '打卡失敗，請稍後再試', toastError);
+          } finally {
+            setButtonStatus(true);
           }
         }
       });
-    } catch (error) {
-      toast.error(error, {
-        position: 'top-center',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        theme: 'dark',
-      });
+    } else {
+      toast.error('新增打卡紀錄中，請等待新增完成', toastError);
     }
   }
   return (
