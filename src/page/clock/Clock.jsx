@@ -98,9 +98,30 @@ const Clock = () => {
                 },
               }
             );
-            console.log(res);
             if (res.data.status) {
-              toast.success(res.data.message, toastSuccess);
+              let doubleCheck = await axios.post(
+                `${API_URL}/doubleCheck`,
+                {
+                  id: userId,
+                  individual_id: individualId,
+                  type: type,
+                  time: res.data.time,
+                },
+                {
+                  headers: {
+                    'Cache-Control': 'no-store',
+                    Pragma: 'no-store',
+                    Expires: '0',
+                  },
+                }
+              );
+              console.log(res);
+              console.log(doubleCheck);
+              if (doubleCheck.data.status) {
+                toast.success(doubleCheck.data.message, toastSuccess);
+              } else {
+                toast.error(doubleCheck.data.message, toastError);
+              }
             } else {
               toast.error(res.data.message, toastError);
             }
